@@ -1,0 +1,43 @@
+body {
+    padding: 0;
+    margin: 0;
+    font-family: var(--vscode-font-family);
+    color: var(--vscode-editor-foreground);
+    background-color: var(--vscode-editor-background);
+}
+
+.git-graph {
+    padding: 20px;
+}
+
+.commit-list {
+    list-style: none;
+    padding: 0;
+}
+
+.commit-item {
+    display: flex;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.commit-hash {
+    width: 80px;
+    font-family: monospace;
+    color: var(--vscode-textLink-foreground);
+}
+
+.commit-message {
+    flex: 1;
+    padding: 0 10px;
+}
+
+.commit-author {
+    width: 150px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.commit-date {
+    width: 200px;
+    color: var(--vscode-descriptionForeground);
+}
