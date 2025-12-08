@@ -2,7 +2,7 @@
     "name": "hi-git",
     "displayName": "Hi Git",
     "description": "A VS Code extension to visualize Git graph and compare branches/tags.",
-    "version": "0.12.05",
+    "version": "0.1.251205",
     "engines": {
         "vscode": "^1.80.0"
     },
