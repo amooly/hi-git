@@ -23,11 +23,27 @@ class DirectoryDiffProvider implements vscode.TreeDataProvider<FileItem> {
 
     getChildren(element?: FileItem): Thenable<FileItem[]> {
         if (!element) {
-            // Root level - build tree structure
-            return Promise.resolve(this.buildTree());
-        } else if (element.isDirectory) {
-            // Return children of this directory
-            return Promise.resolve(element.childrenArray || []);
+            // Root level - return a "Changes" group if we have changes
+            if (this.fileChanges.length === 0) {
+                return Promise.resolve([]);
+            }
+            
+            const changesItem = new FileItem(
+                "Changes",
+                vscode.TreeItemCollapsibleState.Expanded,
+                this.rootUri,
+                this.ref,
+                undefined,
+                undefined,
+                true
+            );
+            changesItem.description = this.fileChanges.length.toString();
+            changesItem.childrenArray = this.buildTree();
+            
+            return Promise.resolve([changesItem]);
+        } else if (element.childrenArray) {
+            // Return pre-calculated children
+            return Promise.resolve(element.childrenArray);
         } else {
             return Promise.resolve([]);
         }
@@ -122,19 +138,25 @@ class FileItem extends vscode.TreeItem {
         super(label, collapsibleState);
 
         if (isDirectory) {
-            this.tooltip = fullPath;
-            this.contextValue = 'directory';
-            this.iconPath = vscode.ThemeIcon.Folder;
+            if (label === "Changes") {
+                this.contextValue = 'changesRoot';
+                // No icon for root group
+            } else {
+                this.tooltip = fullPath;
+                this.contextValue = 'directory';
+                this.iconPath = vscode.ThemeIcon.Folder;
+                this.resourceUri = vscode.Uri.file(path.join(rootUri.fsPath, fullPath || ""));
+            }
         } else {
             this.tooltip = `${fullPath} (${this.getStatusLabel()})`;
             this.description = this.getStatusLabel();
             this.contextValue = 'file';
 
-            // Set icon based on status
-            this.iconPath = this.getStatusIcon();
-
             // Set resource decorations (colors)
             this.resourceUri = vscode.Uri.file(path.join(rootUri.fsPath, fullPath!));
+
+            // Use standard file icon (explorer style)
+            this.iconPath = vscode.ThemeIcon.File;
 
             // Set up diff command
             const leftUri = vscode.Uri.from({
@@ -154,32 +176,13 @@ class FileItem extends vscode.TreeItem {
 
     private getStatusLabel(): string {
         switch (this.status) {
-            case 'M': return 'Modified';
-            case 'A': return 'Added';
-            case 'D': return 'Deleted';
-            case 'R': return 'Renamed';
-            case 'C': return 'Copied';
-            case 'U': return 'Unmerged';
+            case 'M': return 'M';
+            case 'A': return 'A';
+            case 'D': return 'D';
+            case 'R': return 'R';
+            case 'C': return 'C';
+            case 'U': return 'U';
             default: return '';
-        }
-    }
-
-    private getStatusIcon(): vscode.ThemeIcon {
-        switch (this.status) {
-            case 'M':
-                return new vscode.ThemeIcon('diff-modified', new vscode.ThemeColor('gitDecoration.modifiedResourceForeground'));
-            case 'A':
-                return new vscode.ThemeIcon('diff-added', new vscode.ThemeColor('gitDecoration.addedResourceForeground'));
-            case 'D':
-                return new vscode.ThemeIcon('diff-removed', new vscode.ThemeColor('gitDecoration.deletedResourceForeground'));
-            case 'R':
-                return new vscode.ThemeIcon('diff-renamed', new vscode.ThemeColor('gitDecoration.renamedResourceForeground'));
-            case 'C':
-                return new vscode.ThemeIcon('files', new vscode.ThemeColor('gitDecoration.addedResourceForeground'));
-            case 'U':
-                return new vscode.ThemeIcon('diff-ignored', new vscode.ThemeColor('gitDecoration.conflictingResourceForeground'));
-            default:
-                return new vscode.ThemeIcon('file');
         }
     }
 }
