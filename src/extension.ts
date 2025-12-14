@@ -7,8 +7,10 @@ import { handleShowWorkspaceGitGraph } from './commands/showWorkspaceGitGraph';
 import { directoryDiffProvider } from './providers/DirectoryDiffProvider';
 import { commitDetailsProvider } from './providers/CommitDetailsProvider';
 import { gitService } from './git/gitService';
+import { InitExtensionVariables } from './vscode/extensionVariable';
 
 export function activate(context: vscode.ExtensionContext) {
+    InitExtensionVariables(context);
     console.log('Congratulations, your extension "hi-git" is now active!');
 
     vscode.window.registerTreeDataProvider('hi-git.directoryDiff', directoryDiffProvider);

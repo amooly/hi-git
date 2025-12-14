@@ -27,6 +27,26 @@ class DirectoryDiffProvider implements vscode.TreeDataProvider<FileItem> {
             if (this.fileChanges.length === 0) {
                 return Promise.resolve([]);
             }
+
+            let added = 0;
+            let deleted = 0;
+            let modified = 0;
+            this.fileChanges.forEach(change => {
+                if (change.status === 'A') { added++; }
+                else if (change.status === 'D') { deleted++; }
+                else { modified++; }
+            });
+
+            const summaryItem = new FileItem(
+                `Modified: ${modified}, Added: ${added}, Deleted: ${deleted}`,
+                vscode.TreeItemCollapsibleState.None,
+                this.rootUri,
+                this.ref,
+                undefined,
+                undefined,
+                false,
+                true
+            );
             
             const changesItem = new FileItem(
                 "Changes",
@@ -40,7 +60,7 @@ class DirectoryDiffProvider implements vscode.TreeDataProvider<FileItem> {
             changesItem.description = this.fileChanges.length.toString();
             changesItem.childrenArray = this.buildTree();
             
-            return Promise.resolve([changesItem]);
+            return Promise.resolve([summaryItem, changesItem]);
         } else if (element.childrenArray) {
             // Return pre-calculated children
             return Promise.resolve(element.childrenArray);
@@ -133,9 +153,16 @@ class FileItem extends vscode.TreeItem {
         public readonly ref: string,
         public readonly status?: 'M' | 'A' | 'D' | 'R' | 'C' | 'U',
         public readonly fullPath?: string,
-        public readonly isDirectory: boolean = false
+        public readonly isDirectory: boolean = false,
+        public readonly isSummary: boolean = false
     ) {
         super(label, collapsibleState);
+
+        if (isSummary) {
+            this.contextValue = 'summary';
+            this.iconPath = new vscode.ThemeIcon('graph');
+            return;
+        }
 
         if (isDirectory) {
             if (label === "Changes") {

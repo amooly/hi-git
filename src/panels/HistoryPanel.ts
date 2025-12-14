@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { performComparison } from '../commands/compareWith';
 import { gitService } from '../git/gitService';
+import { ExtensionVariables } from '../vscode/extensionVariable';
+import { getWebviewContent } from '../webview/common';
 
 export class HistoryPanel {
     public static currentPanel: HistoryPanel | undefined;
@@ -9,10 +11,16 @@ export class HistoryPanel {
 
     private readonly _panel: vscode.WebviewPanel;
     private readonly _extensionUri: vscode.Uri;
+    private readonly _workspacePath: string;
     private _disposables: vscode.Disposable[] = [];
     private _targetUri: vscode.Uri | undefined;
 
     public static createOrShow(extensionUri: vscode.Uri, targetUri?: vscode.Uri) {
+        if (!vscode.workspace.workspaceFolders?.length) {
+            vscode.window.showErrorMessage('Git History requires an open workspace folder');
+            return;
+        }
+
         const column = vscode.window.activeTextEditor
             ? vscode.window.activeTextEditor.viewColumn
             : undefined;
@@ -32,7 +40,7 @@ export class HistoryPanel {
             column || vscode.ViewColumn.One,
             {
                 enableScripts: true,
-                localResourceRoots: [vscode.Uri.file(path.join(extensionUri.fsPath, 'dist'))]
+                localResourceRoots: [vscode.Uri.file(path.join(ExtensionVariables.globalExtensionPath!, 'dist'))]
             }
         );
 
@@ -42,6 +50,7 @@ export class HistoryPanel {
     private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, targetUri?: vscode.Uri) {
         this._panel = panel;
         this._extensionUri = extensionUri;
+        this._workspacePath = vscode.workspace.workspaceFolders![0].uri.fsPath;
         this._targetUri = targetUri;
 
         // Set the webview's initial html content
@@ -53,150 +62,10 @@ export class HistoryPanel {
 
         // Handle messages from the webview
         this._panel.webview.onDidReceiveMessage(
-            message => {
-                switch (message.command) {
-                    case 'getLog':
-                        this._getLog(message.data?.skip, message.data?.filters);
-                        return;
-                    case 'getBranches':
-                        this._getBranches();
-                        return;
-                    case 'getBranchHeads':
-                        this._getBranchHeads();
-                        return;
-                    case 'getAuthors':
-                        this._getAuthors();
-                        return;
-                    case 'error':
-                        vscode.window.showErrorMessage('Webview error: ' + message.data.message);
-                        console.error('Webview error:', message.data);
-                        return;
-                    case 'log':
-                        console.log('Webview log:', message.data);
-                        return;
-                    case 'showCommitDetails':
-                        this._handleShowCommitDetails(message.data);
-                        return;
-                    case 'compareWith':
-                        this._handleCompareWith(message.data);
-                        return;
-                }
-            },
+            message => this._handleWebviewMessage(message),
             null,
             this._disposables
         );
-    }
-
-    private async _getLog(skip: number = 0, filters?: { branches?: string[], authors?: string[] }) {
-        const { cwd, filePath } = await this._resolveCwdAndFilePath();
-
-        if (!cwd) {
-            return;
-        }
-
-        try {
-            const log = await gitService.getLog(cwd, filePath, skip, 100, filters);
-            this._panel.webview.postMessage({ command: 'setLog', data: log, skip });
-        } catch (error: any) {
-            vscode.window.showErrorMessage('Error fetching git log: ' + error.message);
-        }
-    }
-
-    private async _getBranches() {
-        const cwd = await this._resolveCwd();
-        if (!cwd) {
-            return;
-        }
-
-        try {
-            const branches = await gitService.getBranches(cwd);
-            this._panel.webview.postMessage({ command: 'setBranches', data: branches });
-        } catch (error: any) {
-            console.error('Error fetching branches:', error);
-        }
-    }
-
-    private async _getBranchHeads() {
-        const cwd = await this._resolveCwd();
-        if (!cwd) {
-            return;
-        }
-
-        try {
-            const branchHeads = await gitService.getBranchHeads(cwd);
-            this._panel.webview.postMessage({ command: 'setBranchHeads', data: branchHeads });
-        } catch (error: any) {
-            console.error('Error fetching branch heads:', error);
-        }
-    }
-
-    private async _getAuthors() {
-        const cwd = await this._resolveCwd();
-        if (!cwd) {
-            return;
-        }
-
-        try {
-            const authors = await gitService.getAuthors(cwd);
-            this._panel.webview.postMessage({ command: 'setAuthors', data: authors });
-        } catch (error: any) {
-            console.error('Error fetching authors:', error);
-        }
-    }
-
-    private async _resolveCwd(): Promise<string | undefined> {
-        if (!this._targetUri) {
-            return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        }
-
-        try {
-            const stat = await vscode.workspace.fs.stat(this._targetUri);
-            return stat.type === vscode.FileType.Directory
-                ? this._targetUri.fsPath
-                : path.dirname(this._targetUri.fsPath);
-        } catch (e) {
-            return path.dirname(this._targetUri.fsPath);
-        }
-    }
-
-    private async _resolveCwdAndFilePath(): Promise<{ cwd: string | undefined; filePath: string }> {
-        if (!this._targetUri) {
-            return {
-                cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
-                filePath: ''
-            };
-        }
-
-        try {
-            const stat = await vscode.workspace.fs.stat(this._targetUri);
-            if (stat.type === vscode.FileType.File) {
-                return {
-                    cwd: path.dirname(this._targetUri.fsPath),
-                    filePath: this._targetUri.fsPath
-                };
-            }
-            return { cwd: this._targetUri.fsPath, filePath: '' };
-        } catch (e) {
-            return { cwd: path.dirname(this._targetUri.fsPath), filePath: '' };
-        }
-    }
-
-    private async _handleShowCommitDetails(commitHash: string) {
-        const cwd = await this._resolveCwd();
-        if (cwd) {
-            vscode.commands.executeCommand('hi-git.showCommitDetails', commitHash, cwd);
-        }
-    }
-
-    private async _handleCompareWith(commitHash: string) {
-        const uri = await this._resolveTargetUri();
-        if (uri) {
-            performComparison(uri, commitHash);
-        }
-    }
-
-    private async _resolveTargetUri(): Promise<vscode.Uri | undefined> {
-        return this._targetUri ?? vscode.workspace.workspaceFolders?.[0]?.uri;
     }
 
     public dispose() {
@@ -219,39 +88,114 @@ export class HistoryPanel {
         // And the uri we use to load this script in the webview
         const scriptUri = webview.asWebviewUri(scriptPathOnDisk);
 
-        // Use a nonce to whitelist which scripts can be run
-        const nonce = getNonce();
-
-        return `<!DOCTYPE html>
-			<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
-				<title>Hi Git History</title>
-			</head>
-			<body>
-				<div id="root"></div>
-                <script nonce="${nonce}">
-                    const vscode = acquireVsCodeApi();
-                    window.onerror = function(message, source, lineno, colno, error) {
-                        vscode.postMessage({
-                            command: 'error',
-                            data: { message, source, lineno, colno, error: error ? error.stack : null }
-                        });
-                    };
-                </script>
-				<script nonce="${nonce}" src="${scriptUri}"></script>
-			</body>
-			</html>`;
+        return getWebviewContent(webview, scriptUri);
     }
-}
 
-function getNonce() {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    private _handleWebviewMessage(message: any) {
+        try {
+            switch (message.command) {
+                case 'getLog':
+                    this._getLog(message.data?.skip, message.data?.filters);
+                    return;
+                case 'getBranches':
+                    this._getBranches();
+                    return;
+                case 'getBranchHeads':
+                    this._getBranchHeads();
+                    return;
+                case 'getAuthors':
+                    this._getAuthors();
+                    return;
+                case 'showCommitDetails':
+                    this._handleShowCommitDetails(message.data);
+                    return;
+                case 'compareWith':
+                    this._handleCompareWith(message.data);
+                    return;
+                case 'error':
+                    vscode.window.showErrorMessage('Webview error: ' + message.data.message);
+                    console.error('Webview error:', message.data);
+                    return;
+                case 'log':
+                    console.log('Webview log:', message.data);
+                    return;
+            }
+        } catch (error: any) {
+            vscode.window.showErrorMessage('Error handling webview message. Command: ' + message.command + '. Error: ' + error.message);
+        }
     }
-    return text;
+
+    private async _getLog(skip: number = 0, filters?: { branches?: string[], authors?: string[] }) {
+        const { cwd, filePath } = await this._resolveCwdAndFilePath();
+        const log = await gitService.getLog(cwd, filePath, skip, 100, filters);
+        this._panel.webview.postMessage({ command: 'setLog', data: log, skip });
+    }
+
+    private async _getBranches() {
+        const cwd = await this._resolveCwd();
+        const branches = await gitService.getBranches(cwd);
+        this._panel.webview.postMessage({ command: 'setBranches', data: branches });
+    }
+
+    private async _getBranchHeads() {
+        const cwd = await this._resolveCwd();
+        const branchHeads = await gitService.getBranchHeads(cwd);
+        this._panel.webview.postMessage({ command: 'setBranchHeads', data: branchHeads });
+    }
+
+    private async _getAuthors() {
+        const cwd = await this._resolveCwd();
+        const authors = await gitService.getAuthors(cwd);
+        this._panel.webview.postMessage({ command: 'setAuthors', data: authors });
+    }
+
+    private async _resolveCwd(): Promise<string> {
+        if (!this._targetUri) {
+            return this._workspacePath;
+        }
+
+        try {
+            const stat = await vscode.workspace.fs.stat(this._targetUri);
+            return stat.type === vscode.FileType.Directory
+                ? this._targetUri.fsPath
+                : path.dirname(this._targetUri.fsPath);
+        } catch (e) {
+            return path.dirname(this._targetUri.fsPath);
+        }
+    }
+
+    private async _resolveCwdAndFilePath(): Promise<{ cwd: string; filePath: string }> {
+        if (!this._targetUri) {
+            return {
+                cwd: this._workspacePath,
+                filePath: ''
+            };
+        }
+
+        try {
+            const stat = await vscode.workspace.fs.stat(this._targetUri);
+            if (stat.type === vscode.FileType.File) {
+                return {
+                    cwd: path.dirname(this._targetUri.fsPath),
+                    filePath: this._targetUri.fsPath
+                };
+            }
+            return { cwd: this._targetUri.fsPath, filePath: '' };
+        } catch (e) {
+            return { cwd: path.dirname(this._targetUri.fsPath), filePath: '' };
+        }
+    }
+
+    private async _handleShowCommitDetails(commitHash: string) {
+        const cwd = await this._resolveCwd();
+        vscode.commands.executeCommand('hi-git.showCommitDetails', commitHash, cwd);
+    }
+
+    private _handleCompareWith(commitHash: string) {
+        const workspaceUri = this._targetUri ?? vscode.workspace.workspaceFolders?.[0]?.uri;
+        if (workspaceUri) {
+            performComparison(workspaceUri, commitHash);
+        }
+    }
+
 }
