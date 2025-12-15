@@ -7,6 +7,7 @@ import 'antd/dist/reset.css';
 
 interface GitCommit {
     hash: string;
+    shortHash: string;
     author: string;
     date: string;
     message: string;
@@ -48,8 +49,10 @@ const formatDate = (dateStr: string) => {
     return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
 };
 
+type FilterOption = string | { value: string; label: string; searchKeys?: string[] };
+
 const FilterDropdown: React.FC<{
-    options: string[];
+    options: FilterOption[];
     selected: string[];
     onChange: (selected: string[]) => void;
     label: string;
@@ -57,8 +60,14 @@ const FilterDropdown: React.FC<{
     const [searchTerm, setSearchTerm] = useState('');
     const [open, setOpen] = useState(false);
 
-    const filteredOptions = options.filter(opt =>
-        opt.toLowerCase().includes(searchTerm.toLowerCase())
+    const normalizedOptions = options.map(opt => 
+        typeof opt === 'string' 
+            ? { value: opt, label: opt, searchKeys: [opt] }
+            : { value: opt.value, label: opt.label, searchKeys: opt.searchKeys || [opt.label] }
+    );
+
+    const filteredOptions = normalizedOptions.filter(opt =>
+        opt.searchKeys.some(key => key.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     const items: MenuProps['items'] = [
@@ -87,8 +96,8 @@ const FilterDropdown: React.FC<{
                 >
                     <div style={{ maxHeight: 300, overflowY: 'auto' }}>
                         {filteredOptions.map(option => (
-                            <div key={option} style={{ padding: '4px 0' }}>
-                                <Checkbox value={option}>{option}</Checkbox>
+                            <div key={option.value} style={{ padding: '4px 0' }}>
+                                <Checkbox value={option.value}>{option.label}</Checkbox>
                             </div>
                         ))}
                     </div>
@@ -128,6 +137,12 @@ export const GitGraph: React.FC = () => {
     const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
     const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
     const [selectedCommits, setSelectedCommits] = useState<string[]>([]);
+
+    // Column widths
+    const [commitColWidth, setCommitColWidth] = useState(120);
+    const [authorColWidth, setAuthorColWidth] = useState(150);
+    const [dateColWidth, setDateColWidth] = useState(160);
+    const [resizing, setResizing] = useState<string | null>(null);
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
@@ -202,6 +217,41 @@ export const GitGraph: React.FC = () => {
             loadMore(commits.length);
         }
     };
+
+    // Resize handlers
+    const handleMouseDown = (column: string) => (e: React.MouseEvent) => {
+        e.preventDefault();
+        setResizing(column);
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!resizing) return;
+
+            const delta = e.movementX;
+            if (resizing === 'commit') {
+                setCommitColWidth(prev => Math.max(80, prev + delta));
+            } else if (resizing === 'author') {
+                setAuthorColWidth(prev => Math.max(100, prev + delta));
+            } else if (resizing === 'date') {
+                setDateColWidth(prev => Math.max(120, prev + delta));
+            }
+        };
+
+        const handleMouseUp = () => {
+            setResizing(null);
+        };
+
+        if (resizing) {
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+        }
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [resizing]);
 
     // Graph Calculation
     const { graphCommits, links, svgWidth, commitToBranches } = useMemo(() => {
@@ -298,7 +348,11 @@ export const GitGraph: React.FC = () => {
 
     // Compute unique commit identifiers for filtering
     const commitOptions = useMemo(() => {
-        return commits.map(c => `${c.hash.substring(0, 7)} - ${c.message}`);
+        return commits.map(c => ({
+            value: c.hash,
+            label: c.shortHash,
+            searchKeys: [c.hash, c.shortHash]
+        }));
     }, [commits]);
 
     return (
@@ -390,6 +444,31 @@ export const GitGraph: React.FC = () => {
                     display: flex;
                     align-items: center;
                     padding: 0 5px;
+                    border-right: 1px solid rgba(255, 255, 255, 0.2);
+                    position: relative;
+                }
+                .header-col:last-child {
+                    border-right: none;
+                }
+                .resize-handle {
+                    position: absolute;
+                    right: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 4px;
+                    cursor: col-resize;
+                    user-select: none;
+                    z-index: 1;
+                }
+                .resize-handle:hover {
+                    background-color: var(--vscode-textLink-foreground);
+                }
+                .commit-row .commit-col {
+                    border-right: 1px solid rgba(255, 255, 255, 0.1);
+                    padding: 0 5px;
+                }
+                .commit-row .commit-col:last-child {
+                    border-right: none;
                 }
                 /* Override Ant Design styles to match VS Code theme */
                 .ant-dropdown {
@@ -448,27 +527,30 @@ export const GitGraph: React.FC = () => {
                         onChange={setSelectedBranches}
                     />
                 </div>
-                <div className="header-col" style={{ width: '120px' }}>
+                <div className="header-col" style={{ width: commitColWidth }}>
                     <FilterDropdown
                         label="Commit"
                         options={commitOptions}
                         selected={selectedCommits}
                         onChange={setSelectedCommits}
                     />
+                    <div className="resize-handle" onMouseDown={handleMouseDown('commit')} />
                 </div>
                 <div className="header-col" style={{ flex: 1 }}>
                     <span>Message</span>
                 </div>
-                <div className="header-col" style={{ width: '150px' }}>
+                <div className="header-col" style={{ width: authorColWidth }}>
                     <FilterDropdown
                         label="Author"
                         options={authors}
                         selected={selectedAuthors}
                         onChange={setSelectedAuthors}
                     />
+                    <div className="resize-handle" onMouseDown={handleMouseDown('author')} />
                 </div>
-                <div className="header-col" style={{ width: '160px', textAlign: 'right', justifyContent: 'flex-end' }}>
+                <div className="header-col" style={{ width: dateColWidth, textAlign: 'right', justifyContent: 'flex-end' }}>
                     <span>Date</span>
+                    <div className="resize-handle" onMouseDown={handleMouseDown('date')} />
                 </div>
             </div>
 
