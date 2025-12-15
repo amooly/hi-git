@@ -12,6 +12,7 @@ interface GitCommit {
     date: string;
     message: string;
     parents: string[];
+    branches: string[];
 }
 
 interface GraphCommit extends GitCommit {
@@ -60,8 +61,8 @@ const FilterDropdown: React.FC<{
     const [searchTerm, setSearchTerm] = useState('');
     const [open, setOpen] = useState(false);
 
-    const normalizedOptions = options.map(opt => 
-        typeof opt === 'string' 
+    const normalizedOptions = options.map(opt =>
+        typeof opt === 'string'
             ? { value: opt, label: opt, searchKeys: [opt] }
             : { value: opt.value, label: opt.label, searchKeys: opt.searchKeys || [opt.label] }
     );
@@ -133,7 +134,6 @@ export const GitGraph: React.FC = () => {
 
     const [branches, setBranches] = useState<string[]>([]);
     const [authors, setAuthors] = useState<string[]>([]);
-    const [branchHeads, setBranchHeads] = useState<{ [branchName: string]: string }>({});
     const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
     const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
     const [selectedCommits, setSelectedCommits] = useState<string[]>([]);
@@ -168,9 +168,6 @@ export const GitGraph: React.FC = () => {
                 case 'setBranches':
                     setBranches(message.data);
                     break;
-                case 'setBranchHeads':
-                    setBranchHeads(message.data);
-                    break;
                 case 'setAuthors':
                     setAuthors(message.data);
                     break;
@@ -182,7 +179,6 @@ export const GitGraph: React.FC = () => {
         // Initial load
         loadMore(0);
         vscode.postMessage({ command: 'getBranches' });
-        vscode.postMessage({ command: 'getBranchHeads' });
         vscode.postMessage({ command: 'getAuthors' });
 
         return () => window.removeEventListener('message', handleMessage);
@@ -254,20 +250,11 @@ export const GitGraph: React.FC = () => {
     }, [resizing]);
 
     // Graph Calculation
-    const { graphCommits, links, svgWidth, commitToBranches } = useMemo(() => {
+    const { graphCommits, links, svgWidth } = useMemo(() => {
         const processedCommits: GraphCommit[] = [];
         const links: GraphLink[] = [];
         const activeBranches: { [hash: string]: number } = {}; // parentHash -> column
         let maxColumn = 0;
-
-        // Create reverse mapping: commit hash -> branch names
-        const commitToBranches: { [hash: string]: string[] } = {};
-        Object.entries(branchHeads).forEach(([branchName, commitHash]) => {
-            if (!commitToBranches[commitHash]) {
-                commitToBranches[commitHash] = [];
-            }
-            commitToBranches[commitHash].push(branchName);
-        });
 
         // Helper to get a free column
         const getFreeColumn = (taken: Set<number>) => {
@@ -341,10 +328,9 @@ export const GitGraph: React.FC = () => {
         return {
             graphCommits: processedCommits,
             links,
-            svgWidth: (maxColumn + 1) * COL_WIDTH + 20,
-            commitToBranches
+            svgWidth: (maxColumn + 1) * COL_WIDTH + 20
         };
-    }, [commits, branchHeads]);
+    }, [commits]);
 
     // Compute unique commit identifiers for filtering
     const commitOptions = useMemo(() => {
@@ -464,7 +450,6 @@ export const GitGraph: React.FC = () => {
                     background-color: var(--vscode-textLink-foreground);
                 }
                 .commit-row .commit-col {
-                    border-right: 1px solid rgba(255, 255, 255, 0.1);
                     padding: 0 5px;
                 }
                 .commit-row .commit-col:last-child {
@@ -570,9 +555,8 @@ export const GitGraph: React.FC = () => {
                         );
                     })}
                     {graphCommits.map((commit, i) => {
-                        const branchNames = commitToBranches[commit.hash];
-                        const tooltipTitle = branchNames && branchNames.length > 0
-                            ? branchNames.join(', ')
+                        const tooltipTitle = commit.branches && commit.branches.length > 0
+                            ? commit.branches.join(', ')
                             : undefined;
 
                         return (
@@ -641,18 +625,18 @@ export const GitGraph: React.FC = () => {
                                     <div className="commit-graph-spacer" style={{ width: svgWidth }}></div>
                                     <div className="commit-info">
                                         <span className="commit-hash" style={{ width: '120px' }}>
-                                            {commit.hash.substring(0, 7)}
-                                            {commitToBranches[commit.hash] && (
+                                            {commit.shortHash}
+                                        </span>
+                                        <span className="commit-message" style={{ flex: 1 }}>
+                                            {commit.branches && commit.branches.length > 0 && (
                                                 <Space size={4}>
-                                                    {commitToBranches[commit.hash].map(branchName => (
+                                                    {commit.branches.map(branchName => (
                                                         <Tag key={branchName} color="blue">
                                                             {branchName}
                                                         </Tag>
                                                     ))}
                                                 </Space>
                                             )}
-                                        </span>
-                                        <span className="commit-message" style={{ flex: 1 }}>
                                             {commit.message}
                                         </span>
                                         <span className="commit-author" style={{ width: '150px', marginRight: '10px' }}>{commit.author}</span>

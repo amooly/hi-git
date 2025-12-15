@@ -97,9 +97,6 @@ export class GitGraphPanel {
                 case 'getBranches':
                     this._getBranches();
                     return;
-                case 'getBranchHeads':
-                    this._getBranchHeads();
-                    return;
                 case 'getAuthors':
                     this._getAuthors();
                     return;
@@ -130,11 +127,6 @@ export class GitGraphPanel {
     private async _getBranches() {
         const branches = await gitService.getBranches(this._workspacePath);
         this._panel.webview.postMessage({ command: 'setBranches', data: branches });
-    }
-
-    private async _getBranchHeads() {
-        const branchHeads = await gitService.getBranchHeads(this._workspacePath);
-        this._panel.webview.postMessage({ command: 'setBranchHeads', data: branchHeads });
     }
 
     private async _getAuthors() {
