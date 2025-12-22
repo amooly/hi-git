@@ -1,0 +1,169 @@
+import * as React from 'react';
+import { FilterDropdown } from './FilterDropdown';
+
+interface GitCommit {
+    hash: string;
+    shortHash: string;
+    author: string;
+    date: string;
+    message: string;
+    parents: string[];
+    branches: string[];
+}
+
+interface GitGraphHeaderProps {
+    commits: GitCommit[];
+    branches: string[];
+    authors: string[];
+    selectedBranches: string[];
+    selectedAuthors: string[];
+    selectedCommits: string[];
+    onBranchesChange: (branches: string[]) => void;
+    onAuthorsChange: (authors: string[]) => void;
+    onCommitsChange: (commits: string[]) => void;
+    svgWidth: number;
+    commitColWidth: number;
+    authorColWidth: number;
+    dateColWidth: number;
+    onCommitWidthChange: (width: number) => void;
+    onAuthorWidthChange: (width: number) => void;
+    onDateWidthChange: (width: number) => void;
+}
+
+export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
+    commits,
+    branches,
+    authors,
+    selectedBranches,
+    selectedAuthors,
+    selectedCommits,
+    onBranchesChange,
+    onAuthorsChange,
+    onCommitsChange,
+    svgWidth,
+    commitColWidth,
+    authorColWidth,
+    dateColWidth,
+    onCommitWidthChange,
+    onAuthorWidthChange,
+    onDateWidthChange,
+}) => {
+    const [resizing, setResizing] = React.useState<string | null>(null);
+
+    const styles = `
+        .header-row {
+            display: flex;
+            height: 40px;
+            align-items: center;
+            background-color: var(--vscode-editor-background);
+            border-bottom: 1px solid var(--vscode-widget-border);
+            flex-shrink: 0;
+            font-weight: bold;
+            padding: 0 10px;
+        }
+        .header-col {
+            display: flex;
+            align-items: center;
+            padding: 0 5px;
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+        }
+        .header-col:last-child {
+            border-right: none;
+        }
+        .resize-handle {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            cursor: col-resize;
+            user-select: none;
+            z-index: 1;
+        }
+        .resize-handle:hover {
+            background-color: var(--vscode-textLink-foreground);
+        }
+    `;
+
+    const commitOptions = React.useMemo(() => {
+        return commits.map(c => ({
+            value: c.hash,
+            label: c.shortHash,
+            searchKeys: [c.hash, c.shortHash]
+        }));
+    }, [commits]);
+
+    const handleMouseDown = (column: string) => (e: React.MouseEvent) => {
+        e.preventDefault();
+        setResizing(column);
+    };
+
+    React.useEffect(() => {
+        if (!resizing) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const delta = e.movementX;
+            if (resizing === 'commit') {
+                onCommitWidthChange(Math.max(80, commitColWidth + delta));
+            } else if (resizing === 'author') {
+                onAuthorWidthChange(Math.max(100, authorColWidth + delta));
+            } else if (resizing === 'date') {
+                onDateWidthChange(Math.max(120, dateColWidth + delta));
+            }
+        };
+
+        const handleMouseUp = () => {
+            setResizing(null);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [resizing, commitColWidth, authorColWidth, dateColWidth, onCommitWidthChange, onAuthorWidthChange, onDateWidthChange]);
+
+    return (
+        <>
+            <style>{styles}</style>
+            <div className="header-row">
+                <div className="header-col" style={{ width: svgWidth }}>
+                    <FilterDropdown
+                        label="Branch"
+                        options={branches}
+                        selected={selectedBranches}
+                        onChange={onBranchesChange}
+                    />
+                </div>
+                <div className="header-col" style={{ width: commitColWidth }}>
+                    <FilterDropdown
+                        label="Commit"
+                        options={commitOptions}
+                        selected={selectedCommits}
+                        onChange={onCommitsChange}
+                    />
+                    <div className="resize-handle" onMouseDown={handleMouseDown('commit')} />
+                </div>
+                <div className="header-col" style={{ flex: 1 }}>
+                    <span>Message</span>
+                </div>
+                <div className="header-col" style={{ width: authorColWidth }}>
+                    <FilterDropdown
+                        label="Author"
+                        options={authors}
+                        selected={selectedAuthors}
+                        onChange={onAuthorsChange}
+                    />
+                    <div className="resize-handle" onMouseDown={handleMouseDown('author')} />
+                </div>
+                <div className="header-col" style={{ width: dateColWidth, textAlign: 'right', justifyContent: 'flex-end' }}>
+                    <span>Date</span>
+                    <div className="resize-handle" onMouseDown={handleMouseDown('date')} />
+                </div>
+            </div>
+        </>
+    );
+};
