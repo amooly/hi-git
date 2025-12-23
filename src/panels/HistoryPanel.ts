@@ -1,9 +1,9 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
+import * as vscode from 'vscode';
 import { performComparison } from '../commands/compareWith';
 import { gitService } from '../git/gitService';
 import { ExtensionVariables } from '../vscode/extensionVariable';
-import { getWebviewContent } from '../webview/common';
+import { getWebviewContent } from './panelUtils';
 
 export class HistoryPanel {
     public static currentPanel: HistoryPanel | undefined;

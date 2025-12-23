@@ -1,33 +1,3 @@
-import * as vscode from 'vscode';
-
-export function getWebviewContent(webview: vscode.Webview, scriptUri: vscode.Uri): string {
-    // Use a nonce to whitelist which scripts can be run
-    const nonce = getNonce();
-
-    return `<!DOCTYPE html>
-			<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
-				<title>Hi Git Graph</title>
-			</head>
-			<body>
-				<div id="root"></div>
-                <script nonce="${nonce}">
-                    const vscode = acquireVsCodeApi();
-                    window.onerror = function(message, source, lineno, colno, error) {
-                        vscode.postMessage({
-                            command: 'error',
-                            data: { message, source, lineno, colno, error: error ? error.stack : null }
-                        });
-                    };
-                </script>
-				<script nonce="${nonce}" src="${scriptUri}"></script>
-			</body>
-			</html>`;
-}
-
 export function getNonce() {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -36,3 +6,14 @@ export function getNonce() {
     }
     return text;
 }
+
+export const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const yyyy = date.getFullYear();
+    const MM = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mm = String(date.getMinutes()).padStart(2, '0');
+    const ss = String(date.getSeconds()).padStart(2, '0');
+    return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
+};

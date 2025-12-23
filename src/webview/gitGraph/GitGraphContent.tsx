@@ -1,15 +1,7 @@
 import { Dropdown, Spin, Tooltip } from 'antd';
 import * as React from 'react';
-
-interface GitCommit {
-    hash: string;
-    shortHash: string;
-    author: string;
-    date: string;
-    message: string;
-    parents: string[];
-    branches: string[];
-}
+import { GitCommit } from '../../model/git';
+import { formatDate } from '../common';
 
 interface GraphCommit extends GitCommit {
     column: number;
@@ -43,17 +35,6 @@ const COLORS = [
 const ROW_HEIGHT = 30;
 const COL_WIDTH = 20;
 const CIRCLE_RADIUS = 5;
-
-const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const yyyy = date.getFullYear();
-    const MM = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    const hh = String(date.getHours()).padStart(2, '0');
-    const mm = String(date.getMinutes()).padStart(2, '0');
-    const ss = String(date.getSeconds()).padStart(2, '0');
-    return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
-};
 
 declare const vscode: any;
 

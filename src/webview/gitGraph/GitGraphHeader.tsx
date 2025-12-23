@@ -1,15 +1,6 @@
 import * as React from 'react';
+import { GitCommit } from '../../model/git';
 import { FilterDropdown } from './FilterDropdown';
-
-interface GitCommit {
-    hash: string;
-    shortHash: string;
-    author: string;
-    date: string;
-    message: string;
-    parents: string[];
-    branches: string[];
-}
 
 interface GitGraphHeaderProps {
     commits: GitCommit[];

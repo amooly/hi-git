@@ -1,6 +1,7 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
+import * as vscode from 'vscode';
 import { gitService } from '../git/gitService';
+import { GitCommit } from '../model/git';
 
 class CommitDetailsProvider implements vscode.TreeDataProvider<CommitDetailItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<CommitDetailItem | undefined | null | void> = new vscode.EventEmitter<CommitDetailItem | undefined | null | void>();
@@ -8,7 +9,7 @@ class CommitDetailsProvider implements vscode.TreeDataProvider<CommitDetailItem>
 
     private commitHash: string = '';
     private cwd: string = '';
-    private commitDetails: any = null;
+    private commitDetails: GitCommit | null = null;
     private commitFiles: string[] = [];
 
     constructor() { }

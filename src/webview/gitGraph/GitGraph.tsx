@@ -1,18 +1,9 @@
 import 'antd/dist/reset.css';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
+import { GitCommit } from '../../model/git';
 import { GitGraphContent } from './GitGraphContent';
 import { GitGraphHeader } from './GitGraphHeader';
-
-interface GitCommit {
-    hash: string;
-    shortHash: string;
-    author: string;
-    date: string;
-    message: string;
-    parents: string[];
-    branches: string[];
-}
 
 declare const vscode: any;
 

@@ -1,32 +1,15 @@
-import * as React from 'react';
-import { useEffect, useState, useRef, useMemo } from 'react';
-import { Dropdown, Checkbox, Input, Tag, Tooltip, Spin, Space } from 'antd';
 import { DownOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
+import { Checkbox, Dropdown, Input, Space, Spin, Tag, Tooltip } from 'antd';
 import 'antd/dist/reset.css';
-
-interface GitCommit {
-    hash: string;
-    author: string;
-    date: string;
-    message: string;
-    parents: string[];
-}
+import * as React from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { GitCommit } from '../../model/git';
+import { formatDate } from '../common';
 
 declare const vscode: any;
 
 const ROW_HEIGHT = 30; // Height of each commit row
-
-const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const yyyy = date.getFullYear();
-    const MM = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    const hh = String(date.getHours()).padStart(2, '0');
-    const mm = String(date.getMinutes()).padStart(2, '0');
-    const ss = String(date.getSeconds()).padStart(2, '0');
-    return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
-};
 
 const FilterDropdown: React.FC<{
     options: string[];
