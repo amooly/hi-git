@@ -1,11 +1,11 @@
 import * as React from 'react';
+import { MetaData } from '../../const_def/messages';
 import { GitCommit } from '../../model/git';
 import { FilterDropdown } from './FilterDropdown';
 
 interface GitGraphHeaderProps {
     commits: GitCommit[];
-    branches: string[];
-    authors: string[];
+    metaData: MetaData;
     selectedBranches: string[];
     selectedAuthors: string[];
     selectedCommits: string[];
@@ -23,8 +23,7 @@ interface GitGraphHeaderProps {
 
 export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
     commits,
-    branches,
-    authors,
+    metaData,
     selectedBranches,
     selectedAuthors,
     selectedCommits,
@@ -124,7 +123,7 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
                 <div className="header-col" style={{ width: svgWidth }}>
                     <FilterDropdown
                         label="Branch"
-                        options={branches}
+                        options={metaData.branches}
                         selected={selectedBranches}
                         onChange={onBranchesChange}
                     />
@@ -144,7 +143,7 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
                 <div className="header-col" style={{ width: authorColWidth }}>
                     <FilterDropdown
                         label="Author"
-                        options={authors}
+                        options={metaData.authors}
                         selected={selectedAuthors}
                         onChange={onAuthorsChange}
                     />

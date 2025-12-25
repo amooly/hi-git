@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { gitService } from '../git/gitService';
 import { GitCommit } from '../model/git';
+import { gitService } from '../service/gitService';
 
 class CommitDetailsProvider implements vscode.TreeDataProvider<CommitDetailItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<CommitDetailItem | undefined | null | void> = new vscode.EventEmitter<CommitDetailItem | undefined | null | void>();

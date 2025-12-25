@@ -1,6 +1,6 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
-import { GitFileChange } from '../git/gitService';
+import * as vscode from 'vscode';
+import { GitFileChange } from '../service/gitService';
 
 class DirectoryDiffProvider implements vscode.TreeDataProvider<FileItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<FileItem | undefined | null | void> = new vscode.EventEmitter<FileItem | undefined | null | void>();
@@ -47,7 +47,7 @@ class DirectoryDiffProvider implements vscode.TreeDataProvider<FileItem> {
                 false,
                 true
             );
-            
+
             const changesItem = new FileItem(
                 "Changes",
                 vscode.TreeItemCollapsibleState.Expanded,
@@ -59,7 +59,7 @@ class DirectoryDiffProvider implements vscode.TreeDataProvider<FileItem> {
             );
             changesItem.description = this.fileChanges.length.toString();
             changesItem.childrenArray = this.buildTree();
-            
+
             return Promise.resolve([summaryItem, changesItem]);
         } else if (element.childrenArray) {
             // Return pre-calculated children

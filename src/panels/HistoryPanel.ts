@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { performComparison } from '../commands/compareWith';
-import { gitService } from '../git/gitService';
+import { gitService } from '../service/gitService';
 import { ExtensionVariables } from '../vscode/extensionVariable';
 import { getWebviewContent } from './panelUtils';
 

@@ -50,6 +50,81 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
 }) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
 
+    // Graph Calculation
+    const { graphCommits, links, svgWidth } = React.useMemo(() => {
+        const processedCommits: GraphCommit[] = [];
+        const links: GraphLink[] = [];
+        const activeBranches: { [hash: string]: number } = {};
+        let maxColumn = 0;
+
+        const getFreeColumn = (taken: Set<number>) => {
+            let col = 0;
+            while (taken.has(col)) col++;
+            return col;
+        };
+
+        commits.forEach((commit, index) => {
+            let column = activeBranches[commit.hash];
+
+            if (column === undefined) {
+                const takenColumns = new Set(Object.values(activeBranches));
+                column = getFreeColumn(takenColumns);
+            }
+
+            delete activeBranches[commit.hash];
+
+            Object.entries(activeBranches).forEach(([hash, col]) => {
+                links.push({
+                    x1: col * COL_WIDTH + COL_WIDTH / 2,
+                    y1: index * ROW_HEIGHT + ROW_HEIGHT / 2,
+                    x2: col * COL_WIDTH + COL_WIDTH / 2,
+                    y2: (index + 1) * ROW_HEIGHT + ROW_HEIGHT / 2,
+                    color: COLORS[col % COLORS.length],
+                    isMerge: false
+                });
+            });
+
+            const color = COLORS[column % COLORS.length];
+
+            processedCommits.push({
+                ...commit,
+                column,
+                color
+            });
+
+            maxColumn = Math.max(maxColumn, column);
+
+            commit.parents.forEach((parentHash, parentIndex) => {
+                let parentCol = activeBranches[parentHash];
+
+                if (parentCol === undefined) {
+                    if (parentIndex === 0) {
+                        parentCol = column;
+                    } else {
+                        const takenColumns = new Set(Object.values(activeBranches));
+                        parentCol = getFreeColumn(takenColumns);
+                    }
+                    activeBranches[parentHash] = parentCol;
+                }
+
+                links.push({
+                    x1: column * COL_WIDTH + COL_WIDTH / 2,
+                    y1: index * ROW_HEIGHT + ROW_HEIGHT / 2,
+                    x2: parentCol * COL_WIDTH + COL_WIDTH / 2,
+                    y2: (index + 1) * ROW_HEIGHT + ROW_HEIGHT / 2,
+                    color: parentIndex === 0 ? color : COLORS[parentCol % COLORS.length],
+                    isMerge: parentIndex > 0 || column !== parentCol
+                });
+            });
+        });
+
+        return {
+            graphCommits: processedCommits,
+            links,
+            svgWidth: (maxColumn + 1) * COL_WIDTH + 20
+        };
+    }, [commits]);
+
     const styles = `
         .graph-content {
             position: relative;
@@ -130,81 +205,6 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
             onLoadMore(commits.length);
         }
     }, [isLoading, hasMore, onLoadMore, commits.length]);
-
-    // Graph Calculation
-    const { graphCommits, links, svgWidth } = React.useMemo(() => {
-        const processedCommits: GraphCommit[] = [];
-        const links: GraphLink[] = [];
-        const activeBranches: { [hash: string]: number } = {};
-        let maxColumn = 0;
-
-        const getFreeColumn = (taken: Set<number>) => {
-            let col = 0;
-            while (taken.has(col)) col++;
-            return col;
-        };
-
-        commits.forEach((commit, index) => {
-            let column = activeBranches[commit.hash];
-
-            if (column === undefined) {
-                const takenColumns = new Set(Object.values(activeBranches));
-                column = getFreeColumn(takenColumns);
-            }
-
-            delete activeBranches[commit.hash];
-
-            Object.entries(activeBranches).forEach(([hash, col]) => {
-                links.push({
-                    x1: col * COL_WIDTH + COL_WIDTH / 2,
-                    y1: index * ROW_HEIGHT + ROW_HEIGHT / 2,
-                    x2: col * COL_WIDTH + COL_WIDTH / 2,
-                    y2: (index + 1) * ROW_HEIGHT + ROW_HEIGHT / 2,
-                    color: COLORS[col % COLORS.length],
-                    isMerge: false
-                });
-            });
-
-            const color = COLORS[column % COLORS.length];
-
-            processedCommits.push({
-                ...commit,
-                column,
-                color
-            });
-
-            maxColumn = Math.max(maxColumn, column);
-
-            commit.parents.forEach((parentHash, parentIndex) => {
-                let parentCol = activeBranches[parentHash];
-
-                if (parentCol === undefined) {
-                    if (parentIndex === 0) {
-                        parentCol = column;
-                    } else {
-                        const takenColumns = new Set(Object.values(activeBranches));
-                        parentCol = getFreeColumn(takenColumns);
-                    }
-                    activeBranches[parentHash] = parentCol;
-                }
-
-                links.push({
-                    x1: column * COL_WIDTH + COL_WIDTH / 2,
-                    y1: index * ROW_HEIGHT + ROW_HEIGHT / 2,
-                    x2: parentCol * COL_WIDTH + COL_WIDTH / 2,
-                    y2: (index + 1) * ROW_HEIGHT + ROW_HEIGHT / 2,
-                    color: parentIndex === 0 ? color : COLORS[parentCol % COLORS.length],
-                    isMerge: parentIndex > 0 || column !== parentCol
-                });
-            });
-        });
-
-        return {
-            graphCommits: processedCommits,
-            links,
-            svgWidth: (maxColumn + 1) * COL_WIDTH + 20
-        };
-    }, [commits]);
 
     React.useEffect(() => {
         onSvgWidthChange(svgWidth);

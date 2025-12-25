@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { gitService } from '../git/gitService';
+import { gitService } from '../service/gitService';
 
 // Check if workspace root is tracked
 export async function checkWorkspaceRootTracked() {

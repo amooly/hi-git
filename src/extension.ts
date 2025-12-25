@@ -1,12 +1,12 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
-import { GitGraphPanel } from './panels/GitGraphPanel';
-import { HistoryPanel } from './panels/HistoryPanel';
+import * as vscode from 'vscode';
 import { compareWithBranchOrTag } from './commands/compareWith';
 import { handleShowWorkspaceGitGraph } from './commands/showWorkspaceGitGraph';
-import { directoryDiffProvider } from './providers/DirectoryDiffProvider';
+import { GitGraphPanel } from './panels/GitGraphPanel';
+import { HistoryPanel } from './panels/HistoryPanel';
 import { commitDetailsProvider } from './providers/CommitDetailsProvider';
-import { gitService } from './git/gitService';
+import { directoryDiffProvider } from './providers/DirectoryDiffProvider';
+import { gitService } from './service/gitService';
 import { InitExtensionVariables } from './vscode/extensionVariable';
 
 export function activate(context: vscode.ExtensionContext) {

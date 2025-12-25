@@ -1,6 +1,7 @@
 import 'antd/dist/reset.css';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
+import { MetaData } from '../../const_def/messages';
 import { GitCommit } from '../../model/git';
 import { GitGraphContent } from './GitGraphContent';
 import { GitGraphHeader } from './GitGraphHeader';
@@ -12,8 +13,7 @@ export const GitGraph: React.FC = () => {
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
 
-    const [branches, setBranches] = useState<string[]>([]);
-    const [authors, setAuthors] = useState<string[]>([]);
+    const [metaData, setMetaData] = useState<MetaData>({ branches: [], authors: [] });
     const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
     const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
     const [selectedCommits, setSelectedCommits] = useState<string[]>([]);
@@ -45,11 +45,8 @@ export const GitGraph: React.FC = () => {
                     }
                     setIsLoading(false);
                     break;
-                case 'setBranches':
-                    setBranches(message.data);
-                    break;
-                case 'setAuthors':
-                    setAuthors(message.data);
+                case 'setMetaData':
+                    setMetaData(message.data);
                     break;
             }
         };
@@ -58,8 +55,7 @@ export const GitGraph: React.FC = () => {
 
         // Initial load
         loadMore(0);
-        vscode.postMessage({ command: 'getBranches' });
-        vscode.postMessage({ command: 'getAuthors' });
+        vscode.postMessage({ command: 'queryMetaData' });
 
         return () => window.removeEventListener('message', handleMessage);
     }, []);
@@ -134,8 +130,7 @@ export const GitGraph: React.FC = () => {
 
             <GitGraphHeader
                 commits={commits}
-                branches={branches}
-                authors={authors}
+                metaData={metaData}
                 selectedBranches={selectedBranches}
                 selectedAuthors={selectedAuthors}
                 selectedCommits={selectedCommits}

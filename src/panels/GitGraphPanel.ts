@@ -1,7 +1,8 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { performComparison } from '../commands/compareWith';
-import { gitService } from '../git/gitService';
+import { ExtensionMessageType, WebviewMessageType } from '../const_def/messages';
+import { gitService } from '../service/gitService';
 import { ExtensionVariables } from '../vscode/extensionVariable';
 import { getWebviewContent } from './panelUtils';
 
@@ -91,26 +92,23 @@ export class GitGraphPanel {
     private _handleWebviewMessage(message: any) {
         try {
             switch (message.command) {
-                case 'getLog':
+                case WebviewMessageType.GET_LOG:
                     this._getLog(message.data?.skip, message.data?.filters);
                     return;
-                case 'getBranches':
-                    this._getBranches();
+                case WebviewMessageType.QUERY_META_DATA:
+                    this._queryMetaData();
                     return;
-                case 'getAuthors':
-                    this._getAuthors();
-                    return;
-                case 'showCommitDetails':
+                case WebviewMessageType.SHOW_COMMIT_DETAILS:
                     this._handleShowCommitDetails(message.data);
                     return;
-                case 'compareWith':
+                case WebviewMessageType.COMPARE_WITH:
                     this._handleCompareWith(message.data);
                     return;
-                case 'error':
+                case WebviewMessageType.ERROR:
                     vscode.window.showErrorMessage('Webview error: ' + message.data.message);
                     console.error('Webview error:', message.data);
                     return;
-                case 'log':
+                case WebviewMessageType.LOG:
                     console.log('Webview log:', message.data);
                     return;
             }
@@ -121,17 +119,12 @@ export class GitGraphPanel {
 
     private async _getLog(skip: number = 0, filters?: { branches?: string[], authors?: string[] }) {
         const log = await gitService.getLog(this._workspacePath, '', skip, 100, filters);
-        this._panel.webview.postMessage({ command: 'setLog', data: log, skip });
+        this._panel.webview.postMessage({ command: ExtensionMessageType.SET_LOG, data: log, skip });
     }
 
-    private async _getBranches() {
-        const branches = await gitService.getBranches(this._workspacePath);
-        this._panel.webview.postMessage({ command: 'setBranches', data: branches });
-    }
-
-    private async _getAuthors() {
-        const authors = await gitService.getAuthors(this._workspacePath);
-        this._panel.webview.postMessage({ command: 'setAuthors', data: authors });
+    private async _queryMetaData() {
+        const metaData = await gitService.queryMetaData(this._workspacePath);
+        this._panel.webview.postMessage({ command: ExtensionMessageType.SET_META_DATA, data: metaData });
     }
 
     private _handleShowCommitDetails(commitHash: string) {

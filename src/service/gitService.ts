@@ -1,7 +1,7 @@
 import * as cp from 'child_process';
+import * as path from 'path';
 import * as util from 'util';
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { GitCommit, GitFileChange } from '../model/git';
 
 const exec = util.promisify(cp.exec);
@@ -74,6 +74,14 @@ class GitService {
     async getAuthors(cwd: string): Promise<string[]> {
         const { stdout } = await exec('git log --format="%an" | sort -u', { cwd });
         return stdout.split('\n').filter(line => line.trim() !== '');
+    }
+
+    async queryMetaData(cwd: string): Promise<{ branches: string[], authors: string[] }> {
+        const [branches, authors] = await Promise.all([
+            this.getBranches(cwd),
+            this.getAuthors(cwd)
+        ]);
+        return { branches, authors };
     }
 
     async getTags(cwd: string): Promise<string[]> {

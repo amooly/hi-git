@@ -1,7 +1,7 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
-import { gitService } from '../git/gitService';
+import * as vscode from 'vscode';
 import { directoryDiffProvider } from '../providers/DirectoryDiffProvider';
+import { gitService } from '../service/gitService';
 
 export async function compareWithBranchOrTag(uri: vscode.Uri) {
     const stat = await vscode.workspace.fs.stat(uri);
@@ -58,7 +58,7 @@ export async function performComparison(uri: vscode.Uri, ref: string) {
         // Get the repo root to calculate relative path for filtering
         const repoRoot = await gitService.getRepoRoot(cwd);
         const relativePath = path.relative(repoRoot, uri.fsPath);
-        
+
         const fileChanges = await gitService.getDiffFilesWithStatus(repoRoot, ref, 'HEAD', relativePath); // Comparing selected against HEAD (current)
 
         if (fileChanges.length === 0) {
