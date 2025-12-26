@@ -68,7 +68,8 @@
             "hi-git-explorer": [
                 {
                     "id": "hi-git.directoryDiff",
-                    "name": "Directory Diff"
+                    "name": "Directory Diff",
+                    "when": "hi-git:DirectoryDiffVisable"
                 },
                 {
                     "id": "hi-git.commitDetails",

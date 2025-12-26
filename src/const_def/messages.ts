@@ -37,7 +37,10 @@ export interface QueryMetaDataMessage {
 
 export interface ShowCommitDetailsMessage {
     command: WebviewMessageType.SHOW_COMMIT_DETAILS;
-    data: string; // commit hash
+    data: {
+        commitHash: string;
+        focusView?: boolean;
+    };
 }
 
 export interface CompareWithMessage {

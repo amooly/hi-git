@@ -1,7 +1,8 @@
-import { Dropdown, Spin, Tooltip } from 'antd';
+import { Spin, Tooltip } from 'antd';
 import * as React from 'react';
 import { GitCommit } from '../../model/git';
 import { formatDate } from '../common';
+import { CommitRowDropdown } from './CommitRowDropdown';
 
 interface GraphCommit extends GitCommit {
     column: number;
@@ -49,6 +50,7 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
     onSvgWidthChange,
 }) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
+    const [selectedCommitHash, setSelectedCommitHash] = React.useState<string | null>(null);
 
     // Graph Calculation
     const { graphCommits, links, svgWidth } = React.useMemo(() => {
@@ -152,6 +154,10 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
         .commit-row:hover {
             background-color: var(--vscode-list-hoverBackground);
         }
+        .commit-row.selected {
+            background-color: var(--vscode-list-activeSelectionBackground);
+            color: var(--vscode-list-activeSelectionForeground);
+        }
         .commit-graph-spacer {
             flex-shrink: 0;
         }
@@ -218,6 +224,42 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
         return () => container.removeEventListener('scroll', handleScroll);
     }, [handleScroll]);
 
+    // Keyboard navigation
+    React.useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (commits.length === 0) return;
+
+            const currentIndex = selectedCommitHash
+                ? commits.findIndex(c => c.hash === selectedCommitHash)
+                : -1;
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                const nextIndex = currentIndex < commits.length - 1 ? currentIndex + 1 : currentIndex;
+                if (nextIndex >= 0) {
+                    const nextCommit = commits[nextIndex];
+                    setSelectedCommitHash(nextCommit.hash);
+                    vscode.postMessage({
+                        command: 'showCommitDetails',
+                        data: { commitHash: nextCommit.hash, focusView: false }
+                    });
+                }
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                const prevIndex = currentIndex > 0 ? currentIndex - 1 : 0;
+                const prevCommit = commits[prevIndex];
+                setSelectedCommitHash(prevCommit.hash);
+                vscode.postMessage({
+                    command: 'showCommitDetails',
+                    data: { commitHash: prevCommit.hash, focusView: false }
+                });
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [commits, selectedCommitHash]);
+
     return (
         <>
             <style>{styles}</style>
@@ -259,82 +301,55 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
 
                 <div className="commit-list">
                     {graphCommits.map((commit, i) => (
-                        <React.Fragment key={commit.hash}>
-                            <Dropdown
-                                menu={{
-                                    items: [
-                                        {
-                                            key: 'copy-hash',
-                                            label: 'Copy CommitID',
-                                            onClick: () => {
-                                                navigator.clipboard.writeText(commit.hash);
-                                            }
-                                        },
-                                        {
-                                            key: 'view-details',
-                                            label: 'View Commit Detail',
-                                            onClick: () => {
-                                                vscode.postMessage({
-                                                    command: 'showCommitDetails',
-                                                    data: commit.hash
-                                                });
-                                            }
-                                        },
-                                        {
-                                            key: 'compare-local',
-                                            label: 'Compare Local with This Commit',
-                                            onClick: () => {
-                                                vscode.postMessage({
-                                                    command: 'compareWith',
-                                                    data: commit.hash
-                                                });
-                                            }
-                                        }
-                                    ]
+                        <CommitRowDropdown commitHash={commit.hash}>
+                            <div
+                                className={`commit-row ${selectedCommitHash === commit.hash ? 'selected' : ''}`}
+                                style={{ height: ROW_HEIGHT }}
+                                onClick={() => {
+                                    setSelectedCommitHash(commit.hash);
+                                    vscode.postMessage({
+                                        command: 'showCommitDetails',
+                                        data: { commitHash: commit.hash, focusView: false }
+                                    });
                                 }}
-                                trigger={['contextMenu']}
+                                onDoubleClick={() => {
+                                    setSelectedCommitHash(commit.hash);
+                                    vscode.postMessage({
+                                        command: 'showCommitDetails',
+                                        data: { commitHash: commit.hash, focusView: true }
+                                    });
+                                }}
                             >
-                                <div
-                                    className="commit-row"
-                                    style={{ height: ROW_HEIGHT }}
-                                    onDoubleClick={() => {
-                                        vscode.postMessage({
-                                            command: 'showCommitDetails',
-                                            data: commit.hash
-                                        });
-                                    }}
-                                >
-                                    <div className="commit-graph-spacer" style={{ width: svgWidth }}></div>
-                                    <div className="commit-info">
-                                        <span className="commit-hash" style={{ width: commitColWidth }}>
-                                            {commit.shortHash}
-                                        </span>
-                                        <span className="commit-message" style={{ flex: 1 }}>
-                                            {commit.branches && commit.branches.length > 0 && (
-                                                <React.Fragment>
-                                                    {commit.branches.map(branchName => (
-                                                        <span key={branchName} style={{
-                                                            backgroundColor: 'var(--vscode-badge-background)',
-                                                            color: 'var(--vscode-badge-foreground)',
-                                                            padding: '2px 6px',
-                                                            borderRadius: '3px',
-                                                            marginRight: '4px',
-                                                            fontSize: '0.85em',
-                                                            display: 'inline-block'
-                                                        }}>
-                                                            {branchName}
-                                                        </span>
-                                                    ))}
-                                                </React.Fragment>
-                                            )}
-                                            {commit.message}
-                                        </span>
-                                        <span className="commit-author" style={{ width: authorColWidth, marginRight: '10px' }}>{commit.author}</span>
-                                        <span className="commit-date" style={{ width: dateColWidth }}>{formatDate(commit.date)}</span>
-                                    </div>
+                                <div className="commit-graph-spacer" style={{ width: svgWidth }}></div>
+                                <div className="commit-info">
+                                    <span className="commit-hash" style={{ width: commitColWidth }}>
+                                        {commit.shortHash}
+                                    </span>
+                                    <span className="commit-message" style={{ flex: 1 }}>
+                                        {commit.branches && commit.branches.length > 0 && (
+                                            <React.Fragment>
+                                                {commit.branches.map(branchName => (
+                                                    <span key={branchName} style={{
+                                                        backgroundColor: 'var(--vscode-badge-background)',
+                                                        color: 'var(--vscode-badge-foreground)',
+                                                        padding: '2px 6px',
+                                                        borderRadius: '3px',
+                                                        marginRight: '4px',
+                                                        fontSize: '0.85em',
+                                                        display: 'inline-block'
+                                                    }}>
+                                                        {branchName}
+                                                    </span>
+                                                ))}
+                                            </React.Fragment>
+                                        )}
+                                        {commit.message}
+                                    </span>
+                                    <span className="commit-author" style={{ width: authorColWidth, marginRight: '10px' }}>{commit.author}</span>
+                                    <span className="commit-date" style={{ width: dateColWidth }}>{formatDate(commit.date)}</span>
                                 </div>
-                            </Dropdown>
-                        </React.Fragment>
+                            </div>
+                        </CommitRowDropdown>
                     ))}
                 </div>
                 {isLoading && (
@@ -342,5 +357,6 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
                         <Spin size="large" />
                     </div>
                 )}
-            </div>        </>);
+            </div>
+        </>);
 };

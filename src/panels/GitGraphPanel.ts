@@ -99,7 +99,7 @@ export class GitGraphPanel {
                     this._queryMetaData();
                     return;
                 case WebviewMessageType.SHOW_COMMIT_DETAILS:
-                    this._handleShowCommitDetails(message.data);
+                    this._handleShowCommitDetails(message.data?.commitHash, message.data?.focusView || false);
                     return;
                 case WebviewMessageType.COMPARE_WITH:
                     this._handleCompareWith(message.data);
@@ -127,8 +127,8 @@ export class GitGraphPanel {
         this._panel.webview.postMessage({ command: ExtensionMessageType.SET_META_DATA, data: metaData });
     }
 
-    private _handleShowCommitDetails(commitHash: string) {
-        vscode.commands.executeCommand('hi-git.showCommitDetails', commitHash, this._workspacePath);
+    private async _handleShowCommitDetails(commitHash: string, focusView: boolean) {
+        await vscode.commands.executeCommand('hi-git.showCommitDetails', commitHash, this._workspacePath, focusView);
     }
 
     private _handleCompareWith(commitHash: string) {

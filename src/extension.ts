@@ -13,6 +13,9 @@ export function activate(context: vscode.ExtensionContext) {
     InitExtensionVariables(context);
     console.log('Congratulations, your extension "hi-git" is now active!');
 
+    // Initialize context for directory diff view visibility (default: show)
+    vscode.commands.executeCommand('setContext', 'hi-git:DirectoryDiffVisable', true);
+
     vscode.window.registerTreeDataProvider('hi-git.directoryDiff', directoryDiffProvider);
     vscode.window.registerTreeDataProvider('hi-git.commitDetails', commitDetailsProvider);
 
@@ -57,11 +60,16 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('hi-git.showCommitDetails', async (commitHash: string, repoPath: string) => {
+        vscode.commands.registerCommand('hi-git.showCommitDetails', async (commitHash: string, repoPath: string, focusView: boolean = false) => {
             // Update the provider with the new commit
             await commitDetailsProvider.update(repoPath, commitHash);
-            // Focus the view
-            vscode.commands.executeCommand('workbench.view.extension.hi-git-explorer');
+
+            if (focusView) {
+                // Hide the directory diff view
+                await vscode.commands.executeCommand('setContext', 'hi-git:DirectoryDiffVisable', false);
+                // Focus the commit details view
+                await vscode.commands.executeCommand('hi-git.commitDetails.focus');
+            }
         })
     );
 }
