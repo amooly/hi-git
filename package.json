@@ -2,6 +2,7 @@
     "name": "hi-git",
     "displayName": "Hi Git",
     "description": "A VS Code extension to visualize Git graph and compare branches/tags.",
+    "icon": "images/icon.png",
     "version": "0.1.251205",
     "engines": {
         "vscode": "^1.80.0"
@@ -60,7 +61,7 @@
                 {
                     "id": "hi-git-explorer",
                     "title": "Hi Git",
-                    "icon": "$(git-branch)"
+                    "icon": "images/icon.png"
                 }
             ]
         },
