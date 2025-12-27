@@ -48,6 +48,10 @@ export const GitGraph: React.FC = () => {
                 case 'setMetaData':
                     setMetaData(message.data);
                     break;
+                case 'refresh':
+                    loadMore(0);
+                    vscode.postMessage({ command: 'queryMetaData' });
+                    break;
             }
         };
 

@@ -39,6 +39,15 @@ export const CommitRowDropdown: React.FC<CommitRowDropdownProps> = ({ commitHash
                                 data: commitHash
                             });
                         }
+                    },
+                    {
+                        key: 'refresh',
+                        label: 'Refresh',
+                        onClick: () => {
+                            vscode.postMessage({
+                                command: 'refresh'
+                            });
+                        }
                     }
                 ]
             }}

@@ -8,6 +8,7 @@ export enum WebviewMessageType {
     QUERY_META_DATA = 'queryMetaData',
     SHOW_COMMIT_DETAILS = 'showCommitDetails',
     COMPARE_WITH = 'compareWith',
+    REFRESH = 'refresh',
     ERROR = 'error',
     LOG = 'log',
 }
@@ -16,6 +17,7 @@ export enum WebviewMessageType {
 export enum ExtensionMessageType {
     SET_LOG = 'setLog',
     SET_META_DATA = 'setMetaData',
+    REFRESH = 'refresh',
 }
 
 // Message interfaces

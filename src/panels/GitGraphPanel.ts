@@ -39,7 +39,8 @@ export class GitGraphPanel {
             column || vscode.ViewColumn.One,
             {
                 enableScripts: true,
-                localResourceRoots: [vscode.Uri.file(path.join(ExtensionVariables.globalExtensionPath!, 'dist'))]
+                localResourceRoots: [vscode.Uri.file(path.join(ExtensionVariables.globalExtensionPath!, 'dist'))],
+                retainContextWhenHidden: true // Keep state even when not visible. make it possible keep unchanged when switching panels.
             }
         );
 
@@ -103,6 +104,9 @@ export class GitGraphPanel {
                     return;
                 case WebviewMessageType.COMPARE_WITH:
                     this._handleCompareWith(message.data);
+                    return;
+                case WebviewMessageType.REFRESH:
+                    this._panel.webview.postMessage({ command: ExtensionMessageType.REFRESH });
                     return;
                 case WebviewMessageType.ERROR:
                     vscode.window.showErrorMessage('Webview error: ' + message.data.message);
