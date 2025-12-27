@@ -114,6 +114,27 @@ class GitService {
         });
     }
 
+    async getDiffFilesWithWorkingDirectory(cwd: string, ref: string, filterPath?: string): Promise<GitFileChange[]> {
+        // Compare ref with working directory (includes uncommitted and unstaged changes)
+        let command = `git diff --name-status ${ref}`;
+        if (filterPath) {
+            command += ` -- "${filterPath}"`;
+        }
+        const { stdout } = await exec(command, { cwd });
+        return stdout.split('\n').filter(line => line.trim() !== '').map(line => {
+            const parts = line.split('\t');
+            const status = parts[0].charAt(0) as 'M' | 'A' | 'D' | 'R' | 'C' | 'U';
+            const path = parts[1];
+            const oldPath = parts[2]; // For renamed files
+
+            return {
+                path,
+                status,
+                oldPath
+            };
+        });
+    }
+
     async getCommitDetails(cwd: string, commitHash: string): Promise<GitCommit> {
         const format = "%H|%h|%an|%ad|%P|%s|%D";
         const { stdout } = await exec(`git show -s --format="${format}" --date=iso ${commitHash}`, { cwd });

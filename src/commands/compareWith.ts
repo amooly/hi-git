@@ -59,7 +59,8 @@ export async function performComparison(uri: vscode.Uri, ref: string) {
         const repoRoot = await gitService.getRepoRoot(cwd);
         const relativePath = path.relative(repoRoot, uri.fsPath);
 
-        const fileChanges = await gitService.getDiffFilesWithStatus(repoRoot, ref, 'HEAD', relativePath); // Comparing selected against HEAD (current)
+        // Compare with working directory (includes uncommitted and unstaged changes)
+        const fileChanges = await gitService.getDiffFilesWithWorkingDirectory(repoRoot, ref, relativePath);
 
         if (fileChanges.length === 0) {
             vscode.window.showInformationMessage('No files changed.');
