@@ -187,22 +187,22 @@ class FileItem extends vscode.TreeItem {
 
             // Set up command based on file status
             if (status === 'A') {
-                // Added file: show current file on left, blank on right
-                const leftUri = vscode.Uri.file(path.join(rootUri.fsPath, fullPath!));
-                const rightUri = vscode.Uri.parse(`untitled:${label}`).with({ scheme: 'untitled' });
+                // Added file: show blank on left, current file on right
+                const leftUri = vscode.Uri.parse(`untitled:${label}`).with({ scheme: 'untitled' });
+                const rightUri = vscode.Uri.file(path.join(rootUri.fsPath, fullPath!));
                 this.command = {
                     command: 'vscode.diff',
                     title: 'Open Diff',
                     arguments: [leftUri, rightUri, `${label} (Added)`]
                 };
             } else if (status === 'D') {
-                // Deleted file: show blank on left, file from ref on right
-                const leftUri = vscode.Uri.parse(`untitled:${label}`).with({ scheme: 'untitled' });
-                const rightUri = vscode.Uri.from({
+                // Deleted file: show file from ref on left, blank on right
+                const leftUri = vscode.Uri.from({
                     scheme: 'git',
                     path: path.join(rootUri.path, fullPath!),
                     query: JSON.stringify({ path: path.join(rootUri.fsPath, fullPath!), ref: ref })
                 });
+                const rightUri = vscode.Uri.parse(`untitled:${label}`).with({ scheme: 'untitled' });
                 this.command = {
                     command: 'vscode.diff',
                     title: 'Open Diff',
