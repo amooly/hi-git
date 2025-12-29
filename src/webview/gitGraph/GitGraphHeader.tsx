@@ -1,4 +1,9 @@
 import * as React from 'react';
+import { DownOutlined, ReloadOutlined, BranchesOutlined, SearchOutlined } from '@ant-design/icons';
+import type { MenuProps } from 'antd';
+import { Checkbox, Dropdown, Input, Space, Tag, Button } from 'antd';
+import 'antd/dist/reset.css';
+import * as React from 'react';
 import { MetaData } from '../../const_def/messages';
 import { GitCommit } from '../../model/git';
 import { FilterDropdown } from './FilterDropdown';
@@ -19,6 +24,8 @@ interface GitGraphHeaderProps {
     onCommitWidthChange: (width: number) => void;
     onAuthorWidthChange: (width: number) => void;
     onDateWidthChange: (width: number) => void;
+    onScrollToCommit: (hash: string) => void;
+    onRefresh: () => void;
 }
 
 export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
@@ -37,10 +44,29 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
     onCommitWidthChange,
     onAuthorWidthChange,
     onDateWidthChange,
+    onScrollToCommit,
+    onRefresh,
 }) => {
     const [resizing, setResizing] = React.useState<string | null>(null);
+    const [messageSearchTerm, setMessageSearchTerm] = React.useState('');
+    const [messageDropdownOpen, setMessageDropdownOpen] = React.useState(false);
 
     const styles = `
+        .git-graph-header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 16px;
+            background-color: var(--vscode-editor-background);
+            border-bottom: 1px solid var(--vscode-widget-border);
+        }
+        .git-graph-title {
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
         .header-row {
             display: flex;
             height: 40px;
@@ -84,6 +110,12 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
         }));
     }, [commits]);
 
+    const messageSearchResults = React.useMemo(() => {
+        if (!messageSearchTerm) return [];
+        const term = messageSearchTerm.toLowerCase();
+        return commits.filter(c => c.message.toLowerCase().includes(term));
+    }, [commits, messageSearchTerm]);
+
     const handleMouseDown = (column: string) => (e: React.MouseEvent) => {
         e.preventDefault();
         setResizing(column);
@@ -119,6 +151,18 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
     return (
         <>
             <style>{styles}</style>
+            <div className="git-graph-header-top">
+                <div className="git-graph-title">
+                    <BranchesOutlined />
+                    Git Graph
+                </div>
+                <Button 
+                    type="text" 
+                    icon={<ReloadOutlined />} 
+                    onClick={onRefresh}
+                    title="Refresh"
+                />
+            </div>
             <div className="header-row">
                 <div className="header-col" style={{ width: svgWidth }}>
                     <FilterDropdown
@@ -129,16 +173,68 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
                     />
                 </div>
                 <div className="header-col" style={{ width: commitColWidth }}>
-                    <FilterDropdown
-                        label="Commit"
-                        options={commitOptions}
-                        selected={selectedCommits}
-                        onChange={onCommitsChange}
+                    <Input.Search
+                        placeholder="Commit"
+                        onSearch={(value) => {
+                            if (value) onScrollToCommit(value);
+                        }}
+                        style={{ width: '100%' }}
+                        size="small"
                     />
                     <div className="resize-handle" onMouseDown={handleMouseDown('commit')} />
                 </div>
                 <div className="header-col" style={{ flex: 1 }}>
-                    <span>Message</span>
+                    <Dropdown
+                        trigger={['click']}
+                        open={messageDropdownOpen}
+                        onOpenChange={setMessageDropdownOpen}
+                        menu={{
+                            items: [
+                                {
+                                    key: 'search',
+                                    label: (
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <Input
+                                                placeholder="Keywords..."
+                                                value={messageSearchTerm}
+                                                onChange={e => setMessageSearchTerm(e.target.value)}
+                                                onClick={e => e.stopPropagation()}
+                                                onPressEnter={() => {
+                                                    // Trigger search logic if needed, currently auto-filters
+                                                }}
+                                            />
+                                            <Button 
+                                                type="primary" 
+                                                icon={<SearchOutlined />}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    // Search is reactive to state, just ensure dropdown stays open
+                                                }}
+                                            />
+                                        </div>
+                                    )
+                                },
+                                { type: 'divider' },
+                                ...messageSearchResults.map(c => ({
+                                    key: c.hash,
+                                    label: (
+                                        <div style={{ maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            <span style={{ fontWeight: 'bold', marginRight: 8 }}>{c.shortHash}</span>
+                                            {c.message}
+                                        </div>
+                                    ),
+                                    onClick: () => {
+                                        onScrollToCommit(c.hash);
+                                        setMessageDropdownOpen(false);
+                                    }
+                                }))
+                            ]
+                        }}
+                    >
+                        <Space style={{ cursor: 'pointer', width: '100%' }}>
+                            Message <SearchOutlined />
+                        </Space>
+                    </Dropdown>
                 </div>
                 <div className="header-col" style={{ width: authorColWidth }}>
                     <FilterDropdown

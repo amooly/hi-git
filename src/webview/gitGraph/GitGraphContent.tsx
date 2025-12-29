@@ -27,6 +27,7 @@ interface GitGraphContentProps {
     dateColWidth: number;
     onLoadMore: (skip: number) => void;
     onSvgWidthChange: (width: number) => void;
+    scrollToCommit?: { hash: string; ts: number } | null;
 }
 
 const COLORS = [
@@ -48,9 +49,21 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
     dateColWidth,
     onLoadMore,
     onSvgWidthChange,
+    scrollToCommit,
 }) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [selectedCommitHash, setSelectedCommitHash] = React.useState<string | null>(null);
+
+    React.useEffect(() => {
+        if (scrollToCommit && containerRef.current) {
+            const { hash } = scrollToCommit;
+            const index = commits.findIndex(c => c.hash === hash || c.shortHash === hash);
+            if (index !== -1) {
+                containerRef.current.scrollTop = index * ROW_HEIGHT;
+                setSelectedCommitHash(commits[index].hash);
+            }
+        }
+    }, [scrollToCommit, commits]);
 
     // Graph Calculation
     const { graphCommits, links, svgWidth } = React.useMemo(() => {

@@ -23,6 +23,7 @@ export const GitGraph: React.FC = () => {
     const [authorColWidth, setAuthorColWidth] = useState(150);
     const [dateColWidth, setDateColWidth] = useState(160);
     const [svgWidth, setSvgWidth] = useState(0);
+    const [scrollToCommit, setScrollToCommit] = useState<{ hash: string; ts: number } | null>(null);
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
@@ -84,6 +85,11 @@ export const GitGraph: React.FC = () => {
         setHasMore(true);
         loadMore(0);
     }, [selectedBranches, selectedAuthors, selectedCommits]);
+
+    const handleRefresh = () => {
+        loadMore(0);
+        vscode.postMessage({ command: 'queryMetaData' });
+    };
 
     return (
         <div className="git-graph-container">
@@ -148,6 +154,8 @@ export const GitGraph: React.FC = () => {
                 onCommitWidthChange={setCommitColWidth}
                 onAuthorWidthChange={setAuthorColWidth}
                 onDateWidthChange={setDateColWidth}
+                onScrollToCommit={(hash) => setScrollToCommit({ hash, ts: Date.now() })}
+                onRefresh={handleRefresh}
             />
 
             <GitGraphContent
@@ -159,6 +167,7 @@ export const GitGraph: React.FC = () => {
                 dateColWidth={dateColWidth}
                 onLoadMore={loadMore}
                 onSvgWidthChange={setSvgWidth}
+                scrollToCommit={scrollToCommit}
             />
         </div>
     );
