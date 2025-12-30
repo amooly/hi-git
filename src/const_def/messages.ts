@@ -8,6 +8,8 @@ export enum WebviewMessageType {
     QUERY_META_DATA = 'queryMetaData',
     SHOW_COMMIT_DETAILS = 'showCommitDetails',
     COMPARE_WITH = 'compareWith',
+    REVERT_COMMIT = 'revertCommit',
+    CHECKOUT_COMMIT = 'checkoutCommit',
     REFRESH = 'refresh',
     ERROR = 'error',
     LOG = 'log',

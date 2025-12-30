@@ -1,7 +1,5 @@
-import * as React from 'react';
-import { DownOutlined, ReloadOutlined, BranchesOutlined, SearchOutlined } from '@ant-design/icons';
-import type { MenuProps } from 'antd';
-import { Checkbox, Dropdown, Input, Space, Tag, Button } from 'antd';
+import { BranchesOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Dropdown, Input, Space } from 'antd';
 import 'antd/dist/reset.css';
 import * as React from 'react';
 import { MetaData } from '../../const_def/messages';
@@ -156,9 +154,9 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
                     <BranchesOutlined />
                     Git Graph
                 </div>
-                <Button 
-                    type="text" 
-                    icon={<ReloadOutlined />} 
+                <Button
+                    type="text"
+                    icon={<ReloadOutlined />}
                     onClick={onRefresh}
                     title="Refresh"
                 />
@@ -175,7 +173,7 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
                 <div className="header-col" style={{ width: commitColWidth }}>
                     <Input.Search
                         placeholder="Commit"
-                        onSearch={(value) => {
+                        onSearch={(value: string) => {
                             if (value) onScrollToCommit(value);
                         }}
                         style={{ width: '100%' }}
@@ -197,16 +195,16 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
                                             <Input
                                                 placeholder="Keywords..."
                                                 value={messageSearchTerm}
-                                                onChange={e => setMessageSearchTerm(e.target.value)}
-                                                onClick={e => e.stopPropagation()}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMessageSearchTerm(e.target.value)}
+                                                onClick={(e: React.MouseEvent) => e.stopPropagation()}
                                                 onPressEnter={() => {
                                                     // Trigger search logic if needed, currently auto-filters
                                                 }}
                                             />
-                                            <Button 
-                                                type="primary" 
+                                            <Button
+                                                type="primary"
                                                 icon={<SearchOutlined />}
-                                                onClick={(e) => {
+                                                onClick={(e: React.MouseEvent) => {
                                                     e.stopPropagation();
                                                     // Search is reactive to state, just ensure dropdown stays open
                                                 }}

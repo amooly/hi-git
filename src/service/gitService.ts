@@ -190,6 +190,14 @@ class GitService {
             return this.isTracked(path.dirname(uri.fsPath), uri.fsPath);
         }
     }
+
+    async revertCommit(cwd: string, commitHash: string): Promise<void> {
+        await exec(`git revert --no-edit ${commitHash}`, { cwd });
+    }
+
+    async checkoutCommit(cwd: string, commitHash: string): Promise<void> {
+        await exec(`git checkout ${commitHash}`, { cwd });
+    }
 }
 
 export const gitService = new GitService();

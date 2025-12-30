@@ -105,6 +105,12 @@ export class GitGraphPanel {
                 case WebviewMessageType.COMPARE_WITH:
                     this._handleCompareWith(message.data);
                     return;
+                case WebviewMessageType.REVERT_COMMIT:
+                    this._handleRevertCommit(message.data);
+                    return;
+                case WebviewMessageType.CHECKOUT_COMMIT:
+                    this._handleCheckoutCommit(message.data);
+                    return;
                 case WebviewMessageType.REFRESH:
                     this._panel.webview.postMessage({ command: ExtensionMessageType.REFRESH });
                     return;
@@ -139,6 +145,26 @@ export class GitGraphPanel {
         const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri;
         if (workspaceUri) {
             performComparison(workspaceUri, commitHash);
+        }
+    }
+
+    private async _handleRevertCommit(commitHash: string) {
+        try {
+            await gitService.revertCommit(this._workspacePath, commitHash);
+            vscode.window.showInformationMessage(`Reverted commit ${commitHash}`);
+            this._panel.webview.postMessage({ command: ExtensionMessageType.REFRESH });
+        } catch (error: any) {
+            vscode.window.showErrorMessage(`Failed to revert commit: ${error.message}`);
+        }
+    }
+
+    private async _handleCheckoutCommit(commitHash: string) {
+        try {
+            await gitService.checkoutCommit(this._workspacePath, commitHash);
+            vscode.window.showInformationMessage(`Checked out commit ${commitHash}`);
+            this._panel.webview.postMessage({ command: ExtensionMessageType.REFRESH });
+        } catch (error: any) {
+            vscode.window.showErrorMessage(`Failed to checkout commit: ${error.message}`);
         }
     }
 
