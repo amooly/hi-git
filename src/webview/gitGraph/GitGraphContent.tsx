@@ -3,6 +3,7 @@ import * as React from 'react';
 import { GitCommit } from '../../model/git';
 import { formatDate } from '../common';
 import { CommitRowDropdown } from './CommitRowDropdown';
+import { ColWidth } from './GitGraph';
 
 interface GraphCommit extends GitCommit {
     column: number;
@@ -22,11 +23,9 @@ interface GitGraphContentProps {
     commits: GitCommit[];
     isLoading: boolean;
     hasMore: boolean;
-    commitColWidth: number;
-    authorColWidth: number;
-    dateColWidth: number;
+    columnWidth: ColWidth;
+    onColumnWidthChange: (updates: Partial<ColWidth>) => void;
     onLoadMore: (skip: number) => void;
-    onSvgWidthChange: (width: number) => void;
     scrollToCommit?: { hash: string; ts: number } | null;
 }
 
@@ -44,11 +43,9 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
     commits,
     isLoading,
     hasMore,
-    commitColWidth,
-    authorColWidth,
-    dateColWidth,
+    columnWidth,
+    onColumnWidthChange,
     onLoadMore,
-    onSvgWidthChange,
     scrollToCommit,
 }) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -226,8 +223,8 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
     }, [isLoading, hasMore, onLoadMore, commits.length]);
 
     React.useEffect(() => {
-        onSvgWidthChange(svgWidth);
-    }, [svgWidth, onSvgWidthChange]);
+        onColumnWidthChange({ branchColWidth: svgWidth });
+    }, [svgWidth, onColumnWidthChange]);
 
     React.useEffect(() => {
         const container = containerRef.current;
@@ -335,7 +332,7 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
                             >
                                 <div className="commit-graph-spacer" style={{ width: svgWidth }}></div>
                                 <div className="commit-info">
-                                    <span className="commit-hash" style={{ width: commitColWidth }}>
+                                    <span className="commit-hash" style={{ width: columnWidth.commitColWidth }}>
                                         {commit.shortHash}
                                     </span>
                                     <span className="commit-message" style={{ flex: 1 }}>
@@ -358,8 +355,8 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
                                         )}
                                         {commit.message}
                                     </span>
-                                    <span className="commit-author" style={{ width: authorColWidth, marginRight: '10px' }}>{commit.author}</span>
-                                    <span className="commit-date" style={{ width: dateColWidth }}>{formatDate(commit.date)}</span>
+                                    <span className="commit-author" style={{ width: columnWidth.authorColWidth, marginRight: '10px' }}>{commit.author}</span>
+                                    <span className="commit-date" style={{ width: columnWidth.dateColWidth }}>{formatDate(commit.date)}</span>
                                 </div>
                             </div>
                         </CommitRowDropdown>

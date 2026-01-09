@@ -5,24 +5,62 @@ import { MetaData } from '../../const_def/messages';
 import { GitCommit } from '../../model/git';
 import { GitGraphContent } from './GitGraphContent';
 import { GitGraphHeader } from './GitGraphHeader';
+import { Header, Theme } from './Header';
 
 declare const vscode: any;
+
+export interface ColWidth {
+    commitColWidth: number;
+    authorColWidth: number;
+    dateColWidth: number;
+    branchColWidth: number;
+}
+
+export interface Filter {
+    branches: string[];
+    authors: string[];
+    commits: string[];
+}
 
 export const GitGraph: React.FC = () => {
     const [commits, setCommits] = useState<GitCommit[]>([]);
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
+    const [theme, setTheme] = useState<Theme>('dark');
 
     const [metaData, setMetaData] = useState<MetaData>({ branches: [], authors: [] });
-    const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
-    const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
-    const [selectedCommits, setSelectedCommits] = useState<string[]>([]);
+    const [filter, setFilter] = useState<Filter>({
+        branches: [],
+        authors: [],
+        commits: []
+    });
+
+    const updateFilter = (updates: Partial<Filter>) => {
+        setFilter(prev => ({
+            ...prev,
+            ...(updates.branches !== undefined && { branches: updates.branches }),
+            ...(updates.authors !== undefined && { authors: updates.authors }),
+            ...(updates.commits !== undefined && { commits: updates.commits })
+        }));
+    };
 
     // Column widths
-    const [commitColWidth, setCommitColWidth] = useState(120);
-    const [authorColWidth, setAuthorColWidth] = useState(150);
-    const [dateColWidth, setDateColWidth] = useState(160);
-    const [svgWidth, setSvgWidth] = useState(0);
+    const [columnWidth, setColumnWidth] = useState<ColWidth>({
+        commitColWidth: 120,
+        authorColWidth: 150,
+        dateColWidth: 160,
+        branchColWidth: 0
+    });
+
+    const updateColumnWidth = (updates: Partial<ColWidth>) => {
+        setColumnWidth(prev => ({
+            ...prev,
+            ...(updates.commitColWidth !== undefined && { commitColWidth: updates.commitColWidth }),
+            ...(updates.authorColWidth !== undefined && { authorColWidth: updates.authorColWidth }),
+            ...(updates.dateColWidth !== undefined && { dateColWidth: updates.dateColWidth }),
+            ...(updates.branchColWidth !== undefined && { branchColWidth: updates.branchColWidth })
+        }));
+    };
     const [scrollToCommit, setScrollToCommit] = useState<{ hash: string; ts: number } | null>(null);
 
     useEffect(() => {
@@ -71,11 +109,7 @@ export const GitGraph: React.FC = () => {
             command: 'getLog',
             data: {
                 skip,
-                filters: {
-                    branches: selectedBranches,
-                    authors: selectedAuthors,
-                    commits: selectedCommits
-                }
+                filters: filter
             }
         });
     };
@@ -84,11 +118,15 @@ export const GitGraph: React.FC = () => {
         setCommits([]);
         setHasMore(true);
         loadMore(0);
-    }, [selectedBranches, selectedAuthors, selectedCommits]);
+    }, [filter]);
 
     const handleRefresh = () => {
         loadMore(0);
         vscode.postMessage({ command: 'queryMetaData' });
+    };
+
+    const handleThemeToggle = () => {
+        setTheme(prev => prev === 'light' ? 'dark' : 'light');
     };
 
     return (
@@ -136,38 +174,58 @@ export const GitGraph: React.FC = () => {
                 .ant-spin {
                     color: var(--vscode-editor-foreground) !important;
                 }
+                /* Table header specific styles */
+                .ant-table-wrapper {
+                    background: transparent !important;
+                }
+                .ant-table {
+                    background: transparent !important;
+                }
+                .ant-table-container {
+                    border: none !important;
+                }
+                .ant-table-thead > tr > th {
+                    background: var(--vscode-editor-background) !important;
+                    color: var(--vscode-editor-foreground) !important;
+                    border-bottom: 1px solid var(--vscode-widget-border) !important;
+                }
+                /* Remove sorting icons and resize indicators from Ant Design */
+                .ant-table-column-sorter {
+                    display: none !important;
+                }
+                .ant-table-filter-column {
+                    justify-content: flex-start !important;
+                }
             `}</style>
+
+            <Header
+                onRefresh={handleRefresh}
+                theme={theme}
+                onThemeToggle={handleThemeToggle}
+            />
 
             <GitGraphHeader
                 commits={commits}
                 metaData={metaData}
-                selectedBranches={selectedBranches}
-                selectedAuthors={selectedAuthors}
-                selectedCommits={selectedCommits}
-                onBranchesChange={setSelectedBranches}
-                onAuthorsChange={setSelectedAuthors}
-                onCommitsChange={setSelectedCommits}
-                svgWidth={svgWidth}
-                commitColWidth={commitColWidth}
-                authorColWidth={authorColWidth}
-                dateColWidth={dateColWidth}
-                onCommitWidthChange={setCommitColWidth}
-                onAuthorWidthChange={setAuthorColWidth}
-                onDateWidthChange={setDateColWidth}
                 onScrollToCommit={(hash) => setScrollToCommit({ hash, ts: Date.now() })}
                 onRefresh={handleRefresh}
+
+                filter={filter}
+                onFilterChange={updateFilter}
+
+                columnWidth={columnWidth}
+                onColumnWidthChange={updateColumnWidth}
             />
 
             <GitGraphContent
                 commits={commits}
                 isLoading={isLoading}
                 hasMore={hasMore}
-                commitColWidth={commitColWidth}
-                authorColWidth={authorColWidth}
-                dateColWidth={dateColWidth}
                 onLoadMore={loadMore}
-                onSvgWidthChange={setSvgWidth}
                 scrollToCommit={scrollToCommit}
+
+                columnWidth={columnWidth}
+                onColumnWidthChange={updateColumnWidth}
             />
         </div>
     );

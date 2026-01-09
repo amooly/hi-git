@@ -1,27 +1,19 @@
-import { BranchesOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Dropdown, Input, Space } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
+import { Button, Dropdown, Input, Space, Table } from 'antd';
 import 'antd/dist/reset.css';
+import type { ColumnsType } from 'antd/es/table';
 import * as React from 'react';
 import { MetaData } from '../../const_def/messages';
 import { GitCommit } from '../../model/git';
-import { FilterDropdown } from './FilterDropdown';
+import { ColWidth, Filter } from './GitGraph';
 
 interface GitGraphHeaderProps {
     commits: GitCommit[];
     metaData: MetaData;
-    selectedBranches: string[];
-    selectedAuthors: string[];
-    selectedCommits: string[];
-    onBranchesChange: (branches: string[]) => void;
-    onAuthorsChange: (authors: string[]) => void;
-    onCommitsChange: (commits: string[]) => void;
-    svgWidth: number;
-    commitColWidth: number;
-    authorColWidth: number;
-    dateColWidth: number;
-    onCommitWidthChange: (width: number) => void;
-    onAuthorWidthChange: (width: number) => void;
-    onDateWidthChange: (width: number) => void;
+    filter: Filter;
+    onFilterChange: (updates: Partial<Filter>) => void;
+    columnWidth: ColWidth;
+    onColumnWidthChange: (updates: Partial<ColWidth>) => void;
     onScrollToCommit: (hash: string) => void;
     onRefresh: () => void;
 }
@@ -29,19 +21,10 @@ interface GitGraphHeaderProps {
 export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
     commits,
     metaData,
-    selectedBranches,
-    selectedAuthors,
-    selectedCommits,
-    onBranchesChange,
-    onAuthorsChange,
-    onCommitsChange,
-    svgWidth,
-    commitColWidth,
-    authorColWidth,
-    dateColWidth,
-    onCommitWidthChange,
-    onAuthorWidthChange,
-    onDateWidthChange,
+    filter,
+    onFilterChange,
+    columnWidth,
+    onColumnWidthChange,
     onScrollToCommit,
     onRefresh,
 }) => {
@@ -50,40 +33,30 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
     const [messageDropdownOpen, setMessageDropdownOpen] = React.useState(false);
 
     const styles = `
-        .git-graph-header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 16px;
+        .git-graph-table-header .ant-table {
+            background: transparent;
+        }
+        .git-graph-table-header .ant-table-thead > tr > th {
             background-color: var(--vscode-editor-background);
+            color: var(--vscode-editor-foreground);
             border-bottom: 1px solid var(--vscode-widget-border);
-        }
-        .git-graph-title {
-            font-size: 16px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .header-row {
-            display: flex;
-            height: 40px;
-            align-items: center;
-            background-color: var(--vscode-editor-background);
-            border-bottom: 1px solid var(--vscode-widget-border);
-            flex-shrink: 0;
-            font-weight: bold;
-            padding: 0 10px;
-        }
-        .header-col {
-            display: flex;
-            align-items: center;
-            padding: 0 5px;
             border-right: 1px solid rgba(255, 255, 255, 0.2);
+            font-weight: bold;
+            padding: 8px 5px;
             position: relative;
+            height: 40px;
         }
-        .header-col:last-child {
+        .git-graph-table-header .ant-table-thead > tr > th:last-child {
             border-right: none;
+        }
+        .git-graph-table-header .ant-table-thead > tr > th::before {
+            display: none;
+        }
+        .git-graph-table-header .ant-table-container {
+            border: none;
+        }
+        .git-graph-table-header .ant-table-content {
+            overflow: hidden;
         }
         .resize-handle {
             position: absolute;
@@ -93,20 +66,17 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
             width: 4px;
             cursor: col-resize;
             user-select: none;
-            z-index: 1;
+            z-index: 10;
         }
         .resize-handle:hover {
             background-color: var(--vscode-textLink-foreground);
         }
+        .header-title-wrapper {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
     `;
-
-    const commitOptions = React.useMemo(() => {
-        return commits.map(c => ({
-            value: c.hash,
-            label: c.shortHash,
-            searchKeys: [c.hash, c.shortHash]
-        }));
-    }, [commits]);
 
     const messageSearchResults = React.useMemo(() => {
         if (!messageSearchTerm) return [];
@@ -116,6 +86,7 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
 
     const handleMouseDown = (column: string) => (e: React.MouseEvent) => {
         e.preventDefault();
+        e.stopPropagation();
         setResizing(column);
     };
 
@@ -125,11 +96,11 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
         const handleMouseMove = (e: MouseEvent) => {
             const delta = e.movementX;
             if (resizing === 'commit') {
-                onCommitWidthChange(Math.max(80, commitColWidth + delta));
+                onColumnWidthChange({ commitColWidth: Math.max(80, columnWidth.commitColWidth + delta) });
             } else if (resizing === 'author') {
-                onAuthorWidthChange(Math.max(100, authorColWidth + delta));
+                onColumnWidthChange({ authorColWidth: Math.max(100, columnWidth.authorColWidth + delta) });
             } else if (resizing === 'date') {
-                onDateWidthChange(Math.max(120, dateColWidth + delta));
+                onColumnWidthChange({ dateColWidth: Math.max(120, columnWidth.dateColWidth + delta) });
             }
         };
 
@@ -144,44 +115,55 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [resizing, commitColWidth, authorColWidth, dateColWidth, onCommitWidthChange, onAuthorWidthChange, onDateWidthChange]);
+    }, [resizing, columnWidth, onColumnWidthChange]);
 
-    return (
-        <>
-            <style>{styles}</style>
-            <div className="git-graph-header-top">
-                <div className="git-graph-title">
-                    <BranchesOutlined />
-                    Git Graph
-                </div>
-                <Button
-                    type="text"
-                    icon={<ReloadOutlined />}
-                    onClick={onRefresh}
-                    title="Refresh"
-                />
-            </div>
-            <div className="header-row">
-                <div className="header-col" style={{ width: svgWidth }}>
-                    <FilterDropdown
-                        label="Branch"
-                        options={metaData.branches}
-                        selected={selectedBranches}
-                        onChange={onBranchesChange}
-                    />
-                </div>
-                <div className="header-col" style={{ width: commitColWidth }}>
+    const columns: ColumnsType<any> = [
+        {
+            title: 'Branch',
+            dataIndex: 'branch',
+            key: 'branch',
+            width: columnWidth.branchColWidth,
+            filters: metaData.branches.map(branch => ({ text: branch, value: branch })),
+            filteredValue: filter.branches,
+            onFilter: (value, record) => record.branch === value,
+            filterMultiple: true,
+        },
+        {
+            title: "Commit",
+            dataIndex: 'commit',
+            key: 'commit',
+            width: columnWidth.commitColWidth,
+            filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+                <div style={{ padding: 8 }}>
                     <Input.Search
-                        placeholder="Commit"
+                        placeholder="Search commit hash..."
+                        value={selectedKeys[0]}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
                         onSearch={(value: string) => {
-                            if (value) onScrollToCommit(value);
+                            if (value) {
+                                onScrollToCommit(value);
+                                confirm();
+                            }
                         }}
-                        style={{ width: '100%' }}
+                        onPressEnter={() => {
+                            if (selectedKeys[0]) {
+                                onScrollToCommit(selectedKeys[0] as string);
+                                confirm();
+                            }
+                        }}
+                        style={{ width: 188, marginBottom: 8, display: 'block' }}
                         size="small"
                     />
-                    <div className="resize-handle" onMouseDown={handleMouseDown('commit')} />
                 </div>
-                <div className="header-col" style={{ flex: 1 }}>
+            ),
+            filterIcon: (filtered) => (
+                <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
+            ),
+            onFilter: () => true, // We're using this for search/scroll, not actual filtering
+        },
+        {
+            title: (
+                <div className="header-title-wrapper">
                     <Dropdown
                         trigger={['click']}
                         open={messageDropdownOpen}
@@ -234,19 +216,53 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
                         </Space>
                     </Dropdown>
                 </div>
-                <div className="header-col" style={{ width: authorColWidth }}>
-                    <FilterDropdown
-                        label="Author"
-                        options={metaData.authors}
-                        selected={selectedAuthors}
-                        onChange={onAuthorsChange}
-                    />
-                    <div className="resize-handle" onMouseDown={handleMouseDown('author')} />
-                </div>
-                <div className="header-col" style={{ width: dateColWidth, textAlign: 'right', justifyContent: 'flex-end' }}>
-                    <span>Date</span>
-                    <div className="resize-handle" onMouseDown={handleMouseDown('date')} />
-                </div>
+            ),
+            dataIndex: 'message',
+            key: 'message',
+        },
+        {
+            title: 'Author',
+            dataIndex: 'author',
+            key: 'author',
+            width: columnWidth.authorColWidth,
+            filters: metaData.authors.map(author => ({ text: author, value: author })),
+            filteredValue: filter.authors,
+            onFilter: (value, record) => record.author === value,
+            filterMultiple: true,
+        },
+        {
+            title: "Date",
+            dataIndex: 'date',
+            key: 'date',
+            width: columnWidth.dateColWidth,
+            align: 'right' as const,
+        },
+    ];
+
+    return (
+        <>
+            <style>{styles}</style>
+            <div className="git-graph-table-header">
+                <Table
+                    columns={columns}
+                    dataSource={[]}
+                    pagination={false}
+                    showHeader={true}
+                    size="small"
+                    locale={{ emptyText: null }}
+                    onChange={(pagination, filters, sorter) => {
+                        const updates: Partial<Filter> = {};
+                        if (filters.branch !== undefined) {
+                            updates.branches = filters.branch as string[];
+                        }
+                        if (filters.author !== undefined) {
+                            updates.authors = filters.author as string[];
+                        }
+                        if (Object.keys(updates).length > 0) {
+                            onFilterChange(updates);
+                        }
+                    }}
+                />
             </div>
         </>
     );
