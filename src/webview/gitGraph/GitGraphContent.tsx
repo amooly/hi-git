@@ -162,11 +162,11 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
             padding-right: 10px;
         }
         .commit-row:hover {
-            background-color: var(--vscode-list-hoverBackground);
+            background-color: rgba(128, 128, 128, 0.1);
         }
         .commit-row.selected {
-            background-color: var(--vscode-list-activeSelectionBackground);
-            color: var(--vscode-list-activeSelectionForeground);
+            background-color: #1677ff;
+            color: #fff;
         }
         .commit-graph-spacer {
             flex-shrink: 0;
@@ -181,7 +181,6 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
         .commit-hash {
             font-family: monospace;
             margin-right: 10px;
-            color: var(--vscode-textPreformat-foreground);
             opacity: 0.8;
             display: flex;
             align-items: center;
@@ -300,7 +299,7 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
                                     cy={i * ROW_HEIGHT + ROW_HEIGHT / 2}
                                     r={CIRCLE_RADIUS}
                                     fill={commit.color}
-                                    stroke="var(--vscode-editor-background)"
+                                    stroke="currentColor"
                                     strokeWidth="2"
                                     style={{ pointerEvents: 'auto', cursor: 'pointer' }}
                                 />
@@ -341,11 +340,8 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
                                                 {commit.branches.map(branchName => (
                                                     <Tag
                                                         key={branchName}
-                                                        color="default"
+                                                        color="blue"
                                                         style={{
-                                                            backgroundColor: 'var(--vscode-badge-background)',
-                                                            color: 'var(--vscode-badge-foreground)',
-                                                            borderColor: 'var(--vscode-badge-background)',
                                                             marginRight: '4px',
                                                             fontSize: '0.85em',
                                                         }}

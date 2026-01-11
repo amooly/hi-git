@@ -35,10 +35,7 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
             background: transparent;
         }
         .git-graph-table-header .ant-table-thead > tr > th {
-            background-color: var(--vscode-editor-background);
-            color: var(--vscode-editor-foreground);
-            border-bottom: 1px solid var(--vscode-widget-border);
-            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            border-right: 1px solid rgba(128, 128, 128, 0.2);
             font-weight: bold;
             padding: 8px 5px;
             position: relative;
@@ -67,7 +64,7 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
             z-index: 10;
         }
         .resize-handle:hover {
-            background-color: var(--vscode-textLink-foreground);
+            background-color: #1677ff;
         }
         .header-title-wrapper {
             display: flex;
@@ -138,7 +135,7 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
                             style={{ width: '100%', marginBottom: 8 }}
                         />
                         {searchResults.length > 0 && (
-                            <div style={{ maxHeight: 300, overflow: 'auto', borderTop: '1px solid var(--vscode-widget-border)', paddingTop: 8 }}>
+                            <div style={{ maxHeight: 300, overflow: 'auto', borderTop: '1px solid rgba(128, 128, 128, 0.2)', paddingTop: 8 }}>
                                 {searchResults.map(c => (
                                     <div
                                         key={c.hash}
@@ -156,7 +153,7 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
                                             textOverflow: 'ellipsis',
                                             whiteSpace: 'nowrap'
                                         }}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--vscode-list-hoverBackground)'}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(128, 128, 128, 0.1)'}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
                                         <span style={{ fontWeight: 'bold', marginRight: 8 }}>{c.shortHash}</span>

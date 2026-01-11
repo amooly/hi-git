@@ -1,3 +1,4 @@
+import { ConfigProvider, theme as antdTheme } from 'antd';
 import 'antd/dist/reset.css';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
@@ -121,6 +122,8 @@ export const GitGraph: React.FC = () => {
     }, [filter]);
 
     const handleRefresh = () => {
+        setCommits([]);
+        setHasMore(true);
         loadMore(0);
         vscode.postMessage({ command: 'queryMetaData' });
     };
@@ -129,102 +132,58 @@ export const GitGraph: React.FC = () => {
         setTheme(prev => prev === 'light' ? 'dark' : 'light');
     };
 
+    const themeAlgorithm = theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm;
+
     return (
-        <div className="git-graph-container">
-            <style>{`
-                .git-graph-container {
-                    height: 100vh;
-                    display: flex;
-                    flex-direction: column;
-                    position: relative;
-                    font-family: var(--vscode-font-family);
-                    font-size: var(--vscode-font-size);
-                    color: var(--vscode-editor-foreground);
-                    background-color: var(--vscode-editor-background);
-                }
-                /* Override Ant Design styles to match VS Code theme */
-                .ant-dropdown {
-                    background: var(--vscode-dropdown-background) !important;
-                    border: 1px solid var(--vscode-dropdown-border) !important;
-                    color: var(--vscode-dropdown-foreground) !important;
-                }
-                .ant-dropdown-menu {
-                    background: var(--vscode-dropdown-background) !important;
-                    color: var(--vscode-dropdown-foreground) !important;
-                }
-                .ant-dropdown-menu-item {
-                    color: var(--vscode-dropdown-foreground) !important;
-                }
-                .ant-dropdown-menu-item:hover {
-                    background: var(--vscode-list-hoverBackground) !important;
-                }
-                .ant-input {
-                    background: var(--vscode-input-background) !important;
-                    color: var(--vscode-input-foreground) !important;
-                    border: 1px solid var(--vscode-input-border) !important;
-                }
-                .ant-checkbox-wrapper {
-                    color: var(--vscode-dropdown-foreground) !important;
-                }
-                .ant-tag {
-                    background-color: var(--vscode-badge-background) !important;
-                    color: var(--vscode-badge-foreground) !important;
-                    border: none !important;
-                }
-                .ant-spin {
-                    color: var(--vscode-editor-foreground) !important;
-                }
-                /* Table header specific styles */
-                .ant-table-wrapper {
-                    background: transparent !important;
-                }
-                .ant-table {
-                    background: transparent !important;
-                }
-                .ant-table-container {
-                    border: none !important;
-                }
-                .ant-table-thead > tr > th {
-                    background: var(--vscode-editor-background) !important;
-                    color: var(--vscode-editor-foreground) !important;
-                    border-bottom: 1px solid var(--vscode-widget-border) !important;
-                }
-                /* Remove sorting icons and resize indicators from Ant Design */
-                .ant-table-column-sorter {
-                    display: none !important;
-                }
-                .ant-table-filter-column {
-                    justify-content: flex-start !important;
-                }
-            `}</style>
+        <ConfigProvider
+            theme={{
+                algorithm: themeAlgorithm,
+            }}
+        >
+            <div className="git-graph-container">
+                <style>{`
+                    .git-graph-container {
+                        height: 100vh;
+                        display: flex;
+                        flex-direction: column;
+                        position: relative;
+                    }
+                    .ant-table-column-sorter {
+                        display: none !important;
+                    }
+                    .ant-table-filter-column {
+                        justify-content: flex-start !important;
+                    }
+                `}</style>
 
-            <Header
-                onRefresh={handleRefresh}
-                theme={theme}
-                onThemeToggle={handleThemeToggle}
-            />
+                <Header
+                    onRefresh={handleRefresh}
+                    theme={theme}
+                    onThemeToggle={handleThemeToggle}
+                />
 
-            <GitGraphHeader
-                commits={commits}
-                metaData={metaData}
-                onScrollToCommit={(hash) => setScrollToCommit({ hash, ts: Date.now() })}
+                <GitGraphHeader
+                    commits={commits}
+                    metaData={metaData}
+                    onScrollToCommit={(hash) => setScrollToCommit({ hash, ts: Date.now() })}
 
-                filter={filter}
-                onFilterChange={updateFilter}
+                    filter={filter}
+                    onFilterChange={updateFilter}
 
-                columnWidth={columnWidth}
-            />
+                    columnWidth={columnWidth}
+                />
 
-            <GitGraphContent
-                commits={commits}
-                isLoading={isLoading}
-                hasMore={hasMore}
-                onLoadMore={loadMore}
-                scrollToCommit={scrollToCommit}
+                <GitGraphContent
+                    commits={commits}
+                    isLoading={isLoading}
+                    hasMore={hasMore}
+                    onLoadMore={loadMore}
+                    scrollToCommit={scrollToCommit}
 
-                columnWidth={columnWidth}
-                onColumnWidthChange={updateColumnWidth}
-            />
-        </div>
+                    columnWidth={columnWidth}
+                    onColumnWidthChange={updateColumnWidth}
+                />
+            </div>
+        </ConfigProvider>
     );
 };
