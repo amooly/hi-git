@@ -1,11 +1,13 @@
 import { BulbOutlined, GithubOutlined, ReloadOutlined } from '@ant-design/icons';
 import * as React from 'react';
+import logo from '../assets/hi_git.png';
 
 export type Theme = 'light' | 'dark';
 
 interface HeaderProps {
-    onRefresh: () => void;
     theme: Theme;
+
+    onRefresh: () => void;
     onThemeToggle: () => void;
 }
 
@@ -72,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh, theme, onThemeToggle 
             <div className="sticky-header">
                 <div className="header-left">
                     <img
-                        src="assets/hi_git.png"
+                        src={logo}
                         alt="Hi Git Logo"
                         className="header-logo"
                     />

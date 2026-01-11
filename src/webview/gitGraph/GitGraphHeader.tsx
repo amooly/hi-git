@@ -1,10 +1,11 @@
 import { SearchOutlined } from '@ant-design/icons';
-import { Button, Dropdown, Input, Space, Table } from 'antd';
+import { Input, Table } from 'antd';
 import 'antd/dist/reset.css';
 import type { ColumnsType } from 'antd/es/table';
 import * as React from 'react';
 import { MetaData } from '../../const_def/messages';
 import { GitCommit } from '../../model/git';
+import { buildBranchTree } from '../utils/branchTreeUtils';
 import { ColWidth, Filter } from './GitGraph';
 
 interface GitGraphHeaderProps {
@@ -13,9 +14,7 @@ interface GitGraphHeaderProps {
     filter: Filter;
     onFilterChange: (updates: Partial<Filter>) => void;
     columnWidth: ColWidth;
-    onColumnWidthChange: (updates: Partial<ColWidth>) => void;
     onScrollToCommit: (hash: string) => void;
-    onRefresh: () => void;
 }
 
 export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
@@ -24,13 +23,12 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
     filter,
     onFilterChange,
     columnWidth,
-    onColumnWidthChange,
     onScrollToCommit,
-    onRefresh,
 }) => {
-    const [resizing, setResizing] = React.useState<string | null>(null);
-    const [messageSearchTerm, setMessageSearchTerm] = React.useState('');
-    const [messageDropdownOpen, setMessageDropdownOpen] = React.useState(false);
+    const branchTreeFilters = React.useMemo(
+        () => buildBranchTree(metaData.branches),
+        [metaData.branches]
+    );
 
     const styles = `
         .git-graph-table-header .ant-table {
@@ -78,52 +76,13 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
         }
     `;
 
-    const messageSearchResults = React.useMemo(() => {
-        if (!messageSearchTerm) return [];
-        const term = messageSearchTerm.toLowerCase();
-        return commits.filter(c => c.message.toLowerCase().includes(term));
-    }, [commits, messageSearchTerm]);
-
-    const handleMouseDown = (column: string) => (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setResizing(column);
-    };
-
-    React.useEffect(() => {
-        if (!resizing) return;
-
-        const handleMouseMove = (e: MouseEvent) => {
-            const delta = e.movementX;
-            if (resizing === 'commit') {
-                onColumnWidthChange({ commitColWidth: Math.max(80, columnWidth.commitColWidth + delta) });
-            } else if (resizing === 'author') {
-                onColumnWidthChange({ authorColWidth: Math.max(100, columnWidth.authorColWidth + delta) });
-            } else if (resizing === 'date') {
-                onColumnWidthChange({ dateColWidth: Math.max(120, columnWidth.dateColWidth + delta) });
-            }
-        };
-
-        const handleMouseUp = () => {
-            setResizing(null);
-        };
-
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-
-        return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [resizing, columnWidth, onColumnWidthChange]);
-
     const columns: ColumnsType<any> = [
         {
             title: 'Branch',
             dataIndex: 'branch',
             key: 'branch',
             width: columnWidth.branchColWidth,
-            filters: metaData.branches.map(branch => ({ text: branch, value: branch })),
+            filters: branchTreeFilters,
             filteredValue: filter.branches,
             onFilter: (value, record) => record.branch === value,
             filterMultiple: true,
@@ -152,73 +111,67 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
                             }
                         }}
                         style={{ width: 188, marginBottom: 8, display: 'block' }}
-                        size="small"
                     />
                 </div>
             ),
-            filterIcon: (filtered) => (
-                <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
+            filterIcon: (filtered: boolean) => (
+                <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined, pointerEvents: 'auto' }} />
             ),
             onFilter: () => true, // We're using this for search/scroll, not actual filtering
         },
         {
-            title: (
-                <div className="header-title-wrapper">
-                    <Dropdown
-                        trigger={['click']}
-                        open={messageDropdownOpen}
-                        onOpenChange={setMessageDropdownOpen}
-                        menu={{
-                            items: [
-                                {
-                                    key: 'search',
-                                    label: (
-                                        <div style={{ display: 'flex', gap: 8 }}>
-                                            <Input
-                                                placeholder="Keywords..."
-                                                value={messageSearchTerm}
-                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMessageSearchTerm(e.target.value)}
-                                                onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                                                onPressEnter={() => {
-                                                    // Trigger search logic if needed, currently auto-filters
-                                                }}
-                                            />
-                                            <Button
-                                                type="primary"
-                                                icon={<SearchOutlined />}
-                                                onClick={(e: React.MouseEvent) => {
-                                                    e.stopPropagation();
-                                                    // Search is reactive to state, just ensure dropdown stays open
-                                                }}
-                                            />
-                                        </div>
-                                    )
-                                },
-                                { type: 'divider' },
-                                ...messageSearchResults.map(c => ({
-                                    key: c.hash,
-                                    label: (
-                                        <div style={{ maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            <span style={{ fontWeight: 'bold', marginRight: 8 }}>{c.shortHash}</span>
-                                            {c.message}
-                                        </div>
-                                    ),
-                                    onClick: () => {
-                                        onScrollToCommit(c.hash);
-                                        setMessageDropdownOpen(false);
-                                    }
-                                }))
-                            ]
-                        }}
-                    >
-                        <Space style={{ cursor: 'pointer', width: '100%' }}>
-                            Message <SearchOutlined />
-                        </Space>
-                    </Dropdown>
-                </div>
-            ),
+            title: "Message",
             dataIndex: 'message',
             key: 'message',
+            filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => {
+                const searchTerm = selectedKeys[0] as string || '';
+                const searchResults = searchTerm
+                    ? commits.filter(c => c.message.toLowerCase().includes(searchTerm.toLowerCase()))
+                    : [];
+
+                return (
+                    <div style={{ padding: 8, minWidth: 300 }}>
+                        <Input.Search
+                            placeholder="Search message..."
+                            value={searchTerm}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+                            style={{ width: '100%', marginBottom: 8 }}
+                        />
+                        {searchResults.length > 0 && (
+                            <div style={{ maxHeight: 300, overflow: 'auto', borderTop: '1px solid var(--vscode-widget-border)', paddingTop: 8 }}>
+                                {searchResults.map(c => (
+                                    <div
+                                        key={c.hash}
+                                        onClick={() => {
+                                            onScrollToCommit(c.hash);
+                                            confirm();
+                                        }}
+                                        style={{
+                                            padding: '8px',
+                                            cursor: 'pointer',
+                                            borderRadius: '4px',
+                                            marginBottom: '4px',
+                                            maxWidth: 400,
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--vscode-list-hoverBackground)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                        <span style={{ fontWeight: 'bold', marginRight: 8 }}>{c.shortHash}</span>
+                                        {c.message}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
+            },
+            filterIcon: (filtered: boolean) => (
+                <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined, pointerEvents: 'auto' }} />
+            ),
+            onFilter: () => true, // We're using this for search/scroll, not actual filtering
         },
         {
             title: 'Author',

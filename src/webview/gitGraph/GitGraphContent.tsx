@@ -1,7 +1,7 @@
-import { Spin, Tooltip } from 'antd';
+import { Spin, Tag, Tooltip } from 'antd';
 import * as React from 'react';
 import { GitCommit } from '../../model/git';
-import { formatDate } from '../common';
+import { formatDate } from '../utils/common';
 import { CommitRowDropdown } from './CommitRowDropdown';
 import { ColWidth } from './GitGraph';
 
@@ -339,17 +339,19 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
                                         {commit.branches && commit.branches.length > 0 && (
                                             <React.Fragment>
                                                 {commit.branches.map(branchName => (
-                                                    <span key={branchName} style={{
-                                                        backgroundColor: 'var(--vscode-badge-background)',
-                                                        color: 'var(--vscode-badge-foreground)',
-                                                        padding: '2px 6px',
-                                                        borderRadius: '3px',
-                                                        marginRight: '4px',
-                                                        fontSize: '0.85em',
-                                                        display: 'inline-block'
-                                                    }}>
+                                                    <Tag
+                                                        key={branchName}
+                                                        color="default"
+                                                        style={{
+                                                            backgroundColor: 'var(--vscode-badge-background)',
+                                                            color: 'var(--vscode-badge-foreground)',
+                                                            borderColor: 'var(--vscode-badge-background)',
+                                                            marginRight: '4px',
+                                                            fontSize: '0.85em',
+                                                        }}
+                                                    >
                                                         {branchName}
-                                                    </span>
+                                                    </Tag>
                                                 ))}
                                             </React.Fragment>
                                         )}

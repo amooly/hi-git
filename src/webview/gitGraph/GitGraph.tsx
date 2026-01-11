@@ -3,17 +3,17 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { MetaData } from '../../const_def/messages';
 import { GitCommit } from '../../model/git';
+import { Header, Theme } from '../components/Header';
 import { GitGraphContent } from './GitGraphContent';
 import { GitGraphHeader } from './GitGraphHeader';
-import { Header, Theme } from './Header';
 
 declare const vscode: any;
 
 export interface ColWidth {
+    branchColWidth: number;
     commitColWidth: number;
     authorColWidth: number;
     dateColWidth: number;
-    branchColWidth: number;
 }
 
 export interface Filter {
@@ -46,10 +46,10 @@ export const GitGraph: React.FC = () => {
 
     // Column widths
     const [columnWidth, setColumnWidth] = useState<ColWidth>({
-        commitColWidth: 120,
-        authorColWidth: 150,
-        dateColWidth: 160,
-        branchColWidth: 0
+        branchColWidth: 100,
+        commitColWidth: 100,
+        authorColWidth: 120,
+        dateColWidth: 120,
     });
 
     const updateColumnWidth = (updates: Partial<ColWidth>) => {
@@ -208,13 +208,11 @@ export const GitGraph: React.FC = () => {
                 commits={commits}
                 metaData={metaData}
                 onScrollToCommit={(hash) => setScrollToCommit({ hash, ts: Date.now() })}
-                onRefresh={handleRefresh}
 
                 filter={filter}
                 onFilterChange={updateFilter}
 
                 columnWidth={columnWidth}
-                onColumnWidthChange={updateColumnWidth}
             />
 
             <GitGraphContent
