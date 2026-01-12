@@ -1,6 +1,7 @@
 /**
  * Utility functions for building branch tree structures
  */
+import { logger } from './logger';
 
 /**
  * Build a tree structure from branch names, grouped by Local and Remote
@@ -8,6 +9,8 @@
  * @returns Tree structure compatible with Ant Design filter format
  */
 export const buildBranchTree = (branches: string[]): any[] => {
+    logger.log('Building branch tree for ' + branches);
+
     const localBranches: string[] = [];
     const remoteBranches: string[] = [];
 
@@ -81,8 +84,8 @@ export const buildBranchTree = (branches: string[]): any[] => {
     if (localBranches.length > 0) {
         const localTree = buildTree(localBranches);
         result.push({
-            text: 'Local',
-            value: 'Local',
+            text: 'local',
+            value: 'local',
             children: convertToFilterFormat(localTree)
         });
     }
@@ -90,11 +93,7 @@ export const buildBranchTree = (branches: string[]): any[] => {
     // Add Remote branches group if there are any
     if (remoteBranches.length > 0) {
         const remoteTree = buildTree(remoteBranches);
-        result.push({
-            text: 'Remote',
-            value: 'Remote',
-            children: convertToFilterFormat(remoteTree)
-        });
+        result.push(...convertToFilterFormat(remoteTree));
     }
 
     return result;

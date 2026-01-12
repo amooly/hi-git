@@ -79,6 +79,8 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
             dataIndex: 'branch',
             key: 'branch',
             width: columnWidth.branchColWidth,
+            filterMode: 'tree',
+            filterSearch: true,
             filters: branchTreeFilters,
             filteredValue: filter.branches,
             onFilter: (value, record) => record.branch === value,
@@ -203,7 +205,9 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
                     onChange={(pagination, filters, sorter) => {
                         const updates: Partial<Filter> = {};
                         if (filters.branch !== undefined) {
-                            updates.branches = filters.branch as string[];
+                            const selectedValues = filters.branch as string[];
+                            const validBranches = new Set(metaData.branches);
+                            updates.branches = selectedValues.filter(b => validBranches.has(b));
                         }
                         if (filters.author !== undefined) {
                             updates.authors = filters.author as string[];

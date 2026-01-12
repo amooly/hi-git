@@ -51,8 +51,15 @@ class GitService {
     }
 
     async getBranches(cwd: string): Promise<string[]> {
-        const { stdout } = await exec('git branch -a --format="%(refname:short)"', { cwd });
-        return stdout.split('\n').filter(line => line.trim() !== '');
+        const { stdout } = await exec('git for-each-ref --format="%(refname)|%(refname:short)" refs/heads refs/remotes', { cwd });
+        return stdout.split('\n')
+            .filter(line => line.trim() !== '')
+            .map(line => {
+                const [refname, shortName] = line.split('|');
+                return { refname, shortName };
+            })
+            .filter(({ refname }) => !refname.endsWith('/HEAD'))
+            .map(({ shortName }) => shortName.trim());
     }
 
     async getBranchHeads(cwd: string): Promise<{ [branchName: string]: string }> {
