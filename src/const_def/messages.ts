@@ -1,7 +1,7 @@
 /**
  * Message definitions for webview communication
  */
-
+import { BranchInfo } from '../model/git';
 // Webview to Extension messages
 export enum WebviewMessageType {
     GET_LOG = 'getLog',
@@ -59,7 +59,7 @@ export interface SetLogMessage {
 }
 
 export interface MetaData {
-    branches: string[];
+    branches: BranchInfo[];
     authors: string[];
 }
 

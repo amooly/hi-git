@@ -2,11 +2,11 @@ import * as cp from 'child_process';
 import * as path from 'path';
 import * as util from 'util';
 import * as vscode from 'vscode';
-import { GitCommit, GitFileChange } from '../model/git';
+import { BranchInfo, GitCommit, GitFileChange } from '../model/git';
 
 const exec = util.promisify(cp.exec);
 
-export { GitCommit, GitFileChange };
+export { BranchInfo, GitCommit, GitFileChange };
 
 class GitService {
     async getLog(cwd: string, filePath?: string, skip: number = 0, maxCount: number = 100, filters?: { branches?: string[], authors?: string[] }): Promise<GitCommit[]> {
@@ -50,16 +50,19 @@ class GitService {
         });
     }
 
-    async getBranches(cwd: string): Promise<string[]> {
-        const { stdout } = await exec('git for-each-ref --format="%(refname)|%(refname:short)" refs/heads refs/remotes', { cwd });
+    async getBranches(cwd: string): Promise<BranchInfo[]> {
+        const { stdout } = await exec('git for-each-ref --format="%(refname)|%(refname:short)|%(committerdate:iso)" refs/heads refs/remotes', { cwd });
         return stdout.split('\n')
             .filter(line => line.trim() !== '')
             .map(line => {
-                const [refname, shortName] = line.split('|');
-                return { refname, shortName };
+                const [refname, shortName, commitTime] = line.split('|');
+                return { refname, shortName, commitTime };
             })
             .filter(({ refname }) => !refname.endsWith('/HEAD'))
-            .map(({ shortName }) => shortName.trim());
+            .map(({ shortName, commitTime }) => ({
+                name: shortName.trim(),
+                lastCommitTime: commitTime.trim()
+            }));
     }
 
     async getBranchHeads(cwd: string): Promise<{ [branchName: string]: string }> {
@@ -83,7 +86,7 @@ class GitService {
         return stdout.split('\n').filter(line => line.trim() !== '');
     }
 
-    async queryMetaData(cwd: string): Promise<{ branches: string[], authors: string[] }> {
+    async queryMetaData(cwd: string): Promise<{ branches: BranchInfo[], authors: string[] }> {
         const [branches, authors] = await Promise.all([
             this.getBranches(cwd),
             this.getAuthors(cwd)

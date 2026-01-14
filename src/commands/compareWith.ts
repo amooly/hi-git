@@ -9,7 +9,8 @@ export async function compareWithBranchOrTag(uri: vscode.Uri) {
     const cwd = isDirectory ? uri.fsPath : path.dirname(uri.fsPath);
 
     // 1. Get Branches and Tags
-    const branches = await gitService.getBranches(cwd);
+    const branchInfos = await gitService.getBranches(cwd);
+    const branches = branchInfos.map(b => b.name);
     const tags = await gitService.getTags(cwd);
     const items = [...branches, ...tags];
 

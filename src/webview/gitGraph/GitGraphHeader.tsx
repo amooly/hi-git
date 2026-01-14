@@ -1,11 +1,11 @@
-import { SearchOutlined } from '@ant-design/icons';
+import { FilterOutlined, SearchOutlined } from '@ant-design/icons';
 import { Input, Table } from 'antd';
 import 'antd/dist/reset.css';
 import type { ColumnsType } from 'antd/es/table';
 import * as React from 'react';
 import { MetaData } from '../../const_def/messages';
 import { GitCommit } from '../../model/git';
-import { buildBranchTree } from '../utils/branchTreeUtils';
+import { BranchFilterDropdown } from './BranchFilterDropdown';
 import { ColWidth, Filter } from './GitGraph';
 
 interface GitGraphHeaderProps {
@@ -25,10 +25,7 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
     columnWidth,
     onScrollToCommit,
 }) => {
-    const branchTreeFilters = React.useMemo(
-        () => buildBranchTree(metaData.branches),
-        [metaData.branches]
-    );
+
 
     const styles = `
         .git-graph-table-header .ant-table {
@@ -79,12 +76,19 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
             dataIndex: 'branch',
             key: 'branch',
             width: columnWidth.branchColWidth,
-            filterMode: 'tree',
-            filterSearch: true,
-            filters: branchTreeFilters,
-            filteredValue: filter.branches,
+            filterDropdown: ({ confirm, clearFilters }) => (
+                <BranchFilterDropdown
+                    branches={metaData.branches}
+                    selectedBranches={filter.branches}
+                    onBranchSelect={(branches) => onFilterChange({ branches })}
+                    confirm={confirm}
+                    clearFilters={clearFilters}
+                />
+            ),
+            filterIcon: (filtered: boolean) => (
+                <FilterOutlined style={{ color: filter.branches.length > 0 ? '#1890ff' : undefined }} />
+            ),
             onFilter: (value, record) => record.branch === value,
-            filterMultiple: true,
         },
         {
             title: "Commit",
@@ -204,11 +208,6 @@ export const GitGraphHeader: React.FC<GitGraphHeaderProps> = ({
                     locale={{ emptyText: null }}
                     onChange={(pagination, filters, sorter) => {
                         const updates: Partial<Filter> = {};
-                        if (filters.branch !== undefined) {
-                            const selectedValues = filters.branch as string[];
-                            const validBranches = new Set(metaData.branches);
-                            updates.branches = selectedValues.filter(b => validBranches.has(b));
-                        }
                         if (filters.author !== undefined) {
                             updates.authors = filters.author as string[];
                         }
