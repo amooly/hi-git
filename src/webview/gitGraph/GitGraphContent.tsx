@@ -300,7 +300,7 @@ export const GitGraphContent: React.FC<GitGraphContentProps> = ({
                                     r={CIRCLE_RADIUS}
                                     fill={commit.color}
                                     stroke="currentColor"
-                                    strokeWidth="2"
+                                    strokeWidth={selectedCommitHash === commit.hash ? 2 : 0}
                                     style={{ pointerEvents: 'auto', cursor: 'pointer' }}
                                 />
                             </Tooltip>
