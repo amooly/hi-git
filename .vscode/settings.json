@@ -1,0 +1,41 @@
+{
+    // Enable Copilot to use custom instructions
+    // "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+    // TypeScript settings
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    // Editor settings for consistency
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    },
+    // File associations
+    "files.associations": {
+        "*.tsx": "typescriptreact",
+        "*.ts": "typescript"
+    },
+    // Exclude patterns for search/files
+    "files.exclude": {
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/node_modules": true,
+        "**/out": true,
+        "**/dist": true
+    },
+    // Search exclude patterns
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/out": true,
+        "**/*.code-search": true
+    },
+    // Git settings
+    "git.ignoreLimitWarning": true,
+    // Extension development
+    "launch": {
+        "configurations": [],
+        "compounds": []
+    }
+}
