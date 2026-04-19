@@ -1,0 +1,13 @@
+.vscode/**
+.vscode-test/**
+src/**
+node_modules/**
+!node_modules/react/umd/react.production.min.js
+!node_modules/react-dom/umd/react-dom.production.min.js
+.gitignore
+tsconfig.json
+esbuild.js
+**/*.ts
+**/*.map
+frontend/**/*.jsx
+frontend/screenshots/**
