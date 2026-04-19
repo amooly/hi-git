@@ -41,6 +41,26 @@ export const CommitRowDropdown: React.FC<CommitRowDropdownProps> = ({ commitHash
                         }
                     },
                     {
+                        key: 'revert-commit',
+                        label: 'Revert to This Commit',
+                        onClick: () => {
+                            vscode.postMessage({
+                                command: 'revertCommit',
+                                data: commitHash
+                            });
+                        }
+                    },
+                    {
+                        key: 'checkout-commit',
+                        label: 'Checkout to This Commit',
+                        onClick: () => {
+                            vscode.postMessage({
+                                command: 'checkoutCommit',
+                                data: commitHash
+                            });
+                        }
+                    },
+                    {
                         key: 'refresh',
                         label: 'Refresh',
                         onClick: () => {

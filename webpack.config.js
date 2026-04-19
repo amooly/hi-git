@@ -67,6 +67,14 @@ const webviewConfig = {
             {
                 test: /\.css$/,
                 use: ['style-loader', 'css-loader']
+            },
+            {
+                test: /\.(png|jpg|jpeg|gif)$/i,
+                type: 'asset/inline'  // Embed as data URL for webview compatibility
+            },
+            {
+                test: /\.svg$/i,
+                type: 'asset/resource'  // Keep SVG as separate files if needed
             }
         ]
     },

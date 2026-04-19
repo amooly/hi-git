@@ -3,7 +3,11 @@
     "displayName": "Hi Git",
     "description": "A VS Code extension to visualize Git graph and compare branches/tags.",
     "icon": "images/icon.png",
-    "version": "0.1.251205",
+    "version": "1.0.260114",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/harvey/hi-git.git"
+    },
     "engines": {
         "vscode": "^1.80.0"
     },
@@ -112,6 +116,7 @@
     },
     "dependencies": {
         "@ant-design/icons": "^5.2.6",
+        "@ant-design/pro-components": "^2.8.10",
         "antd": "^5.11.5",
         "react": "^18.2.0",
         "react-dom": "^18.2.0"

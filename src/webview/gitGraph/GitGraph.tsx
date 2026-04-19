@@ -1,28 +1,68 @@
+import { ConfigProvider, theme as antdTheme } from 'antd';
 import 'antd/dist/reset.css';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { MetaData } from '../../const_def/messages';
 import { GitCommit } from '../../model/git';
+import { Header, Theme } from '../components/Header';
 import { GitGraphContent } from './GitGraphContent';
 import { GitGraphHeader } from './GitGraphHeader';
 
 declare const vscode: any;
 
+export interface ColWidth {
+    branchColWidth: number;
+    commitColWidth: number;
+    authorColWidth: number;
+    dateColWidth: number;
+}
+
+export interface Filter {
+    branches: string[];
+    authors: string[];
+    commits: string[];
+}
+
 export const GitGraph: React.FC = () => {
     const [commits, setCommits] = useState<GitCommit[]>([]);
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
+    const [theme, setTheme] = useState<Theme>('dark');
 
     const [metaData, setMetaData] = useState<MetaData>({ branches: [], authors: [] });
-    const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
-    const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
-    const [selectedCommits, setSelectedCommits] = useState<string[]>([]);
+    const [filter, setFilter] = useState<Filter>({
+        branches: [],
+        authors: [],
+        commits: []
+    });
+
+    const updateFilter = (updates: Partial<Filter>) => {
+        setFilter(prev => ({
+            ...prev,
+            ...(updates.branches !== undefined && { branches: updates.branches }),
+            ...(updates.authors !== undefined && { authors: updates.authors }),
+            ...(updates.commits !== undefined && { commits: updates.commits })
+        }));
+    };
 
     // Column widths
-    const [commitColWidth, setCommitColWidth] = useState(120);
-    const [authorColWidth, setAuthorColWidth] = useState(150);
-    const [dateColWidth, setDateColWidth] = useState(160);
-    const [svgWidth, setSvgWidth] = useState(0);
+    const [columnWidth, setColumnWidth] = useState<ColWidth>({
+        branchColWidth: 100,
+        commitColWidth: 100,
+        authorColWidth: 120,
+        dateColWidth: 120,
+    });
+
+    const updateColumnWidth = (updates: Partial<ColWidth>) => {
+        setColumnWidth(prev => ({
+            ...prev,
+            ...(updates.commitColWidth !== undefined && { commitColWidth: updates.commitColWidth }),
+            ...(updates.authorColWidth !== undefined && { authorColWidth: updates.authorColWidth }),
+            ...(updates.dateColWidth !== undefined && { dateColWidth: updates.dateColWidth }),
+            ...(updates.branchColWidth !== undefined && { branchColWidth: updates.branchColWidth })
+        }));
+    };
+    const [scrollToCommit, setScrollToCommit] = useState<{ hash: string; ts: number } | null>(null);
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
@@ -70,11 +110,7 @@ export const GitGraph: React.FC = () => {
             command: 'getLog',
             data: {
                 skip,
-                filters: {
-                    branches: selectedBranches,
-                    authors: selectedAuthors,
-                    commits: selectedCommits
-                }
+                filters: filter
             }
         });
     };
@@ -83,83 +119,71 @@ export const GitGraph: React.FC = () => {
         setCommits([]);
         setHasMore(true);
         loadMore(0);
-    }, [selectedBranches, selectedAuthors, selectedCommits]);
+    }, [filter]);
+
+    const handleRefresh = () => {
+        setCommits([]);
+        setHasMore(true);
+        loadMore(0);
+        vscode.postMessage({ command: 'queryMetaData' });
+    };
+
+    const handleThemeToggle = () => {
+        setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    };
+
+    const themeAlgorithm = theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm;
 
     return (
-        <div className="git-graph-container">
-            <style>{`
-                .git-graph-container {
-                    height: 100vh;
-                    display: flex;
-                    flex-direction: column;
-                    position: relative;
-                    font-family: var(--vscode-font-family);
-                    font-size: var(--vscode-font-size);
-                    color: var(--vscode-editor-foreground);
-                    background-color: var(--vscode-editor-background);
-                }
-                /* Override Ant Design styles to match VS Code theme */
-                .ant-dropdown {
-                    background: var(--vscode-dropdown-background) !important;
-                    border: 1px solid var(--vscode-dropdown-border) !important;
-                    color: var(--vscode-dropdown-foreground) !important;
-                }
-                .ant-dropdown-menu {
-                    background: var(--vscode-dropdown-background) !important;
-                    color: var(--vscode-dropdown-foreground) !important;
-                }
-                .ant-dropdown-menu-item {
-                    color: var(--vscode-dropdown-foreground) !important;
-                }
-                .ant-dropdown-menu-item:hover {
-                    background: var(--vscode-list-hoverBackground) !important;
-                }
-                .ant-input {
-                    background: var(--vscode-input-background) !important;
-                    color: var(--vscode-input-foreground) !important;
-                    border: 1px solid var(--vscode-input-border) !important;
-                }
-                .ant-checkbox-wrapper {
-                    color: var(--vscode-dropdown-foreground) !important;
-                }
-                .ant-tag {
-                    background-color: var(--vscode-badge-background) !important;
-                    color: var(--vscode-badge-foreground) !important;
-                    border: none !important;
-                }
-                .ant-spin {
-                    color: var(--vscode-editor-foreground) !important;
-                }
-            `}</style>
+        <ConfigProvider
+            theme={{
+                algorithm: themeAlgorithm,
+            }}
+        >
+            <div className="git-graph-container">
+                <style>{`
+                    .git-graph-container {
+                        height: 100vh;
+                        display: flex;
+                        flex-direction: column;
+                        position: relative;
+                    }
+                    .ant-table-column-sorter {
+                        display: none !important;
+                    }
+                    .ant-table-filter-column {
+                        justify-content: flex-start !important;
+                    }
+                `}</style>
 
-            <GitGraphHeader
-                commits={commits}
-                metaData={metaData}
-                selectedBranches={selectedBranches}
-                selectedAuthors={selectedAuthors}
-                selectedCommits={selectedCommits}
-                onBranchesChange={setSelectedBranches}
-                onAuthorsChange={setSelectedAuthors}
-                onCommitsChange={setSelectedCommits}
-                svgWidth={svgWidth}
-                commitColWidth={commitColWidth}
-                authorColWidth={authorColWidth}
-                dateColWidth={dateColWidth}
-                onCommitWidthChange={setCommitColWidth}
-                onAuthorWidthChange={setAuthorColWidth}
-                onDateWidthChange={setDateColWidth}
-            />
+                <Header
+                    onRefresh={handleRefresh}
+                    theme={theme}
+                    onThemeToggle={handleThemeToggle}
+                />
 
-            <GitGraphContent
-                commits={commits}
-                isLoading={isLoading}
-                hasMore={hasMore}
-                commitColWidth={commitColWidth}
-                authorColWidth={authorColWidth}
-                dateColWidth={dateColWidth}
-                onLoadMore={loadMore}
-                onSvgWidthChange={setSvgWidth}
-            />
-        </div>
+                <GitGraphHeader
+                    commits={commits}
+                    metaData={metaData}
+                    onScrollToCommit={(hash) => setScrollToCommit({ hash, ts: Date.now() })}
+
+                    filter={filter}
+                    onFilterChange={updateFilter}
+
+                    columnWidth={columnWidth}
+                />
+
+                <GitGraphContent
+                    commits={commits}
+                    isLoading={isLoading}
+                    hasMore={hasMore}
+                    onLoadMore={loadMore}
+                    scrollToCommit={scrollToCommit}
+
+                    columnWidth={columnWidth}
+                    onColumnWidthChange={updateColumnWidth}
+                />
+            </div>
+        </ConfigProvider>
     );
 };

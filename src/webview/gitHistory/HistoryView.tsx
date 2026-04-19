@@ -5,7 +5,7 @@ import 'antd/dist/reset.css';
 import * as React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { GitCommit } from '../../model/git';
-import { formatDate } from '../common';
+import { formatDate } from '../utils/common';
 
 declare const vscode: any;
 

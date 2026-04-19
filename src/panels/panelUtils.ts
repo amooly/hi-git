@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getNonce } from '../webview/common';
+import { getNonce } from '../webview/utils/common';
 
 export function getWebviewContent(webview: vscode.Webview, scriptUri: vscode.Uri): string {
     // Use a nonce to whitelist which scripts can be run
@@ -10,7 +10,7 @@ export function getWebviewContent(webview: vscode.Webview, scriptUri: vscode.Uri
 			<head>
 				<meta charset="UTF-8">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${webview.cspSource} data:;">
 				<title>Hi Git Graph</title>
 			</head>
 			<body>

@@ -13,3 +13,8 @@ export interface GitFileChange {
     status: 'M' | 'A' | 'D' | 'R' | 'C' | 'U';
     oldPath?: string; // For renamed files
 }
+
+export interface BranchInfo {
+    name: string;
+    lastCommitTime: string;
+}
