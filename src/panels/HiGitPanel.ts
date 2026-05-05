@@ -33,7 +33,7 @@ export class HiGitPanel {
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [
-          vscode.Uri.joinPath(extensionUri, 'frontend'),
+          vscode.Uri.joinPath(extensionUri, 'src', 'frontend'),
           vscode.Uri.joinPath(extensionUri, 'media'),
         ],
       }
@@ -82,7 +82,7 @@ export class HiGitPanel {
   private _getWebviewContent(webview: vscode.Webview): string {
     // --- CSS ---
     const stylesUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'frontend', 'styles.css')
+      vscode.Uri.joinPath(this._extensionUri, 'src', 'frontend', 'styles.css')
     );
 
     // --- React vendor (UMD builds) ---
@@ -95,10 +95,10 @@ export class HiGitPanel {
 
     // --- App scripts (non-JSX, loaded directly from frontend/) ---
     const dataUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'frontend', 'data.js')
+      vscode.Uri.joinPath(this._extensionUri, 'src', 'frontend', 'data.js')
     );
     const graphUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'frontend', 'graph.js')
+      vscode.Uri.joinPath(this._extensionUri, 'src', 'frontend', 'graph.js')
     );
 
     // --- Transpiled JSX → JS (from media/webview/) ---

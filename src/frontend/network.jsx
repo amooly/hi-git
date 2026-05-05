@@ -72,10 +72,10 @@ function BranchRelationsView({ data }) {
           />
           {/* Trunk caps (HEAD and root markers) */}
           <circle cx={TRUNK_X} cy={TOP_PAD - 20} r="6" fill="var(--branch-main)" />
-          <text x={TRUNK_X + 14} y={TOP_PAD - 16} fontSize="11" fontFamily="var(--fds-font-mono)"
+          <text x={TRUNK_X + 14} y={TOP_PAD - 16} fontSize="11" fontFamily="var(--gx-font-mono)"
                 fill="var(--vsc-fg-1)" fontWeight="600">main · HEAD</text>
           <circle cx={TRUNK_X} cy={TOP_PAD + TRUNK_LEN + 20} r="4" fill="var(--branch-main)" opacity="0.6" />
-          <text x={TRUNK_X + 14} y={TOP_PAD + TRUNK_LEN + 24} fontSize="10" fontFamily="var(--fds-font-mono)"
+          <text x={TRUNK_X + 14} y={TOP_PAD + TRUNK_LEN + 24} fontSize="10" fontFamily="var(--gx-font-mono)"
                 fill="var(--vsc-fg-3)">root · t8c9d44</text>
 
           {/* Branch tracks */}

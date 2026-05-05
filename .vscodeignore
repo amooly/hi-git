@@ -9,5 +9,5 @@ tsconfig.json
 esbuild.js
 **/*.ts
 **/*.map
-frontend/**/*.jsx
-frontend/screenshots/**
+src/frontend/**/*.jsx
+src/frontend/screenshots/**

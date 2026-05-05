@@ -357,7 +357,7 @@ function DetailPanel({ open, commit, onClose, branch }) {
           <div className="lbl">Branch</div>
           <div className="val" style={{display:'flex', alignItems:'center', gap:6}}>
             <span style={{width:8, height:8, borderRadius:'50%', background: branch.color, display:'inline-block'}}/>
-            <span style={{fontFamily:'var(--fds-font-mono)', fontSize: 12}}>{commit.branch}</span>
+            <span style={{fontFamily:'var(--gx-font-mono)', fontSize: 12}}>{commit.branch}</span>
           </div>
         </div>
         <div className="gx-detail-row">

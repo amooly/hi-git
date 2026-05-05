@@ -9,6 +9,23 @@ const path = require('path');
 
 const isWatch = process.argv.includes('--watch');
 
+// ---------- Watch Plugin ----------
+const watchPlugin = {
+  name: 'watch-plugin',
+  setup(build) {
+    build.onStart(() => {
+      console.log('[watch] build started');
+    });
+    build.onEnd(result => {
+      if (result.errors && result.errors.length > 0) {
+        console.log(`[watch] build finished with ${result.errors.length} errors`);
+      } else {
+        console.log('[watch] build finished');
+      }
+    });
+  },
+};
+
 // ---------- Target 1: Extension host ----------
 const extensionConfig = {
   entryPoints: ['src/extension.ts'],
@@ -20,10 +37,11 @@ const extensionConfig = {
   target: 'node18',
   sourcemap: true,
   minify: false,
+  plugins: [watchPlugin],
 };
 
 // ---------- Target 2: Webview JSX transpilation ----------
-const jsxFiles = ['frontend/app.jsx', 'frontend/panel.jsx', 'frontend/network.jsx'];
+const jsxFiles = ['src/frontend/app.jsx', 'src/frontend/panel.jsx', 'src/frontend/network.jsx'];
 
 const webviewConfig = {
   entryPoints: jsxFiles,
@@ -35,6 +53,7 @@ const webviewConfig = {
   jsxFragment: 'React.Fragment',
   sourcemap: true,
   minify: false,
+  plugins: [watchPlugin],
 };
 
 // ---------- Copy React UMD vendor files ----------
@@ -82,7 +101,7 @@ async function build() {
     await webCtx.watch();
 
     console.log('  Extension host: watching src/**/*.ts');
-    console.log('  Webview JSX:    watching frontend/**/*.jsx');
+    console.log('  Webview JSX:    watching src/frontend/**/*.jsx');
     console.log('');
   } else {
     // One-shot build

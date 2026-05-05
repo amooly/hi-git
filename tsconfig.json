@@ -15,5 +15,5 @@
     "declarationMap": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "out", "frontend", "media"]
+  "exclude": ["node_modules", "out", "src/frontend", "media"]
 }

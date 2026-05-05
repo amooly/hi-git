@@ -1,0 +1,63 @@
+# Coding Conventions
+
+> These conventions apply to ALL code in this project. Tool-specific conventions are in `docs/coding_conventions/`.
+
+## Naming
+
+- React component files use `.jsx` extension (in `src/frontend/`).
+- Extension host files use `.ts` extension (in `src/`).
+- Generated output files mirror their source name (e.g., `panel.jsx` → `media/webview/panel.js`).
+
+## Formatting
+
+- TypeScript config uses `"module": "Node16"`.
+- No CSS-in-JS, no Tailwind — all styling is vanilla CSS with heavy use of CSS custom properties.
+
+## Patterns
+
+- All webview modules expose themselves as globals on `window` (e.g., `window.GitGraph`, `window.GitNexusPanel`) — there is no bundler in the webview runtime.
+- Design tokens and VS Code semantic tokens are defined per-theme in `src/frontend/styles.css`.
+- Theme and view preferences are persisted to `localStorage` in the webview.
+
+## Error Handling
+
+<!-- How errors should be caught, logged, and surfaced. -->
+
+## Testing
+
+<!-- What to test, naming conventions for tests, where test files live. -->
+
+## Gotchas
+
+### `.js` extensions on TypeScript imports (required)
+
+With `"module": "Node16"` in `tsconfig.json`, all relative imports **must** use `.js` extensions (pointing to the compiled output), even though source files are `.ts`:
+
+```ts
+// correct
+import { getNonce } from '../utilities/getNonce.js';
+
+// wrong — TypeScript won't resolve this under Node16
+import { getNonce } from '../utilities/getNonce';
+```
+
+### Editing JSX requires a rebuild
+
+The `.jsx` files in `src/frontend/` are pre-transpiled by esbuild. After editing them, run `npm run compile` (or let `watch` mode pick it up) before changes appear in the webview.
+
+### `src/frontend/GitNexus.html` uses CDN React
+
+The standalone HTML harness uses CDN React + Babel for rapid browser iteration only. The actual extension loads everything locally to satisfy the webview CSP.
+
+### `localStorage` in webviews
+
+Theme and view preferences are stored in `localStorage`. To reset: open DevTools in the Extension Dev Host (Help → Toggle Developer Tools) and clear storage.
+
+### Tweaks panel `postMessage` protocol
+
+The `__activate_edit_mode` / `__edit_mode_set_keys` messages were designed for the browser-based design tool and are largely no-ops in VS Code — `window.parent` is the webview itself.
+
+## Tool-Specific Conventions
+
+<!-- Links to sub-files for specific tools/libraries: -->
+<!-- - [esbuild](coding_conventions/esbuild.md) -->
