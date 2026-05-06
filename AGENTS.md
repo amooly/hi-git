@@ -11,6 +11,14 @@ Key constraints for AI agents:
 - Edit only `src/` (extension host) and `src/frontend/` (webview UI). Never edit `media/vendor/`, `media/webview/`, or `out/` — these are generated.
 - Extension host ↔ webview communication is via `postMessage` only. No shared imports across the boundary.
 - The webview has no bundler at runtime. New modules must be exposed as `window.X` globals and added to the script load order in the HTML template.
+- `src/utilities/` is for stateless helper functions with no external I/O. `src/components/` is for adapters that invoke external providers (git, file system, HTTP). Do not place I/O-capable code in `utilities/`, and do not place pure functions in `components/`.
+
+## Documentation
+→ See [docs/features/](docs/features/) for feature-level data flows and API docs.
+
+Key constraints for AI agents:
+- `docs/architecture.md` is the single source of truth for project structure, layer definitions, folder purposes, and dependency rules. Do not duplicate this information in feature docs or any other file.
+- Feature docs in `docs/features/` describe behaviors, data flows, and public APIs — not folder structure or layer boundaries. Link to `architecture.md` instead of re-stating it.
 
 ## Coding Conventions
 → See [docs/coding_conventions.md](docs/coding_conventions.md) for global coding patterns, style rules, and gotchas.

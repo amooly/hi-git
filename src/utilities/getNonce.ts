@@ -1,7 +1,4 @@
-/**
- * Generate a random nonce string for Content Security Policy.
- * Used to allow only specific inline scripts in webviews.
- */
+// Produces a random 32-char string used as the per-load CSP nonce for webview script tags
 export function getNonce(): string {
   let text = '';
   const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

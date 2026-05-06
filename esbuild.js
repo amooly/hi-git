@@ -37,6 +37,12 @@ const extensionConfig = {
   target: 'node18',
   sourcemap: true,
   minify: false,
+  alias: {
+    '@services': path.resolve(__dirname, 'src/services'),
+    '@panels': path.resolve(__dirname, 'src/panels'),
+    '@utilities': path.resolve(__dirname, 'src/utilities'),
+    '@types': path.resolve(__dirname, 'src/types'),
+  },
   plugins: [watchPlugin],
 };
 

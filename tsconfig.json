@@ -5,6 +5,13 @@
     "lib": ["ES2020"],
     "outDir": "out",
     "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@services/*": ["src/services/*"],
+      "@panels/*": ["src/panels/*"],
+      "@utilities/*": ["src/utilities/*"],
+      "@types/*": ["src/types/*"]
+    },
     "sourceMap": true,
     "strict": true,
     "esModuleInterop": true,

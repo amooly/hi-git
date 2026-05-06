@@ -19,6 +19,30 @@
 - Design tokens and VS Code semantic tokens are defined per-theme in `src/frontend/styles.css`.
 - Theme and view preferences are persisted to `localStorage` in the webview.
 
+### Service singletons
+
+Services in `src/services/` are instantiated once as module-level singletons. The class itself is not exported — only the instance is:
+
+```ts
+// src/services/MyService.ts
+class MyService {
+  getData() { ... }
+}
+
+export const myService = new MyService();
+```
+
+Consumers import the instance directly — they do not receive it via constructor injection:
+
+```ts
+// src/panels/MyPanel.ts
+import { myService } from '@services/MyService.js';
+
+// use myService.getData() directly — do not accept it as a parameter
+```
+
+The instance is created when the module is first imported, which happens inside `activate()` in `extension.ts`. There is no need to pass services through constructors or function parameters.
+
 ## Error Handling
 
 <!-- How errors should be caught, logged, and surfaced. -->
@@ -27,18 +51,40 @@
 
 <!-- What to test, naming conventions for tests, where test files live. -->
 
+## Import Paths
+
+Always use path aliases instead of relative paths for imports across `src/` directories. The following aliases are configured in both `tsconfig.json` and `esbuild.js`:
+
+| Alias | Resolves to |
+|---|---|
+| `@services/*` | `src/services/*` |
+| `@panels/*` | `src/panels/*` |
+| `@utilities/*` | `src/utilities/*` |
+| `@types/*` | `src/types/*` |
+
+```ts
+// correct
+import { gitDataService } from '@services/GitDataService.js';
+import { getNonce } from '@utilities/getNonce.js';
+
+// wrong — use aliases, not relative paths
+import { gitDataService } from '../services/GitDataService.js';
+```
+
+Keep the `.js` extension on alias imports (see Gotchas below).
+
 ## Gotchas
 
 ### `.js` extensions on TypeScript imports (required)
 
-With `"module": "Node16"` in `tsconfig.json`, all relative imports **must** use `.js` extensions (pointing to the compiled output), even though source files are `.ts`:
+With `"module": "Node16"` in `tsconfig.json`, all imports **must** use `.js` extensions (pointing to the compiled output), even though source files are `.ts`:
 
 ```ts
 // correct
-import { getNonce } from '../utilities/getNonce.js';
+import { getNonce } from '@utilities/getNonce.js';
 
 // wrong — TypeScript won't resolve this under Node16
-import { getNonce } from '../utilities/getNonce';
+import { getNonce } from '@utilities/getNonce';
 ```
 
 ### Editing JSX requires a rebuild

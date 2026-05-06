@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { getNonce } from '../utilities/getNonce.js';
+import { SidebarRenderer } from '../utilities/SidebarRenderer.js';
+import { gitDataService } from '../services/GitDataService.js';
 
 /**
  * Sidebar webview provider for the Hi Git activity bar panel.
@@ -181,55 +183,14 @@ export class HiGitSidebarProvider implements vscode.WebviewViewProvider {
         <div>
             <div class="section-title">Branches</div>
             <ul class="branch-list">
-                <li class="branch-item current">
-                    <span class="branch-dot" style="background: #4FC1FF;"></span>
-                    main
-                    <span class="branch-meta">↑2 ↓0</span>
-                </li>
-                <li class="branch-item">
-                    <span class="branch-dot" style="background: #C586C0;"></span>
-                    develop
-                    <span class="branch-meta">↓3</span>
-                </li>
-                <li class="branch-item">
-                    <span class="branch-dot" style="background: #9CDCFE;"></span>
-                    feature/network-view
-                    <span class="branch-meta">↑2</span>
-                </li>
-                <li class="branch-item">
-                    <span class="branch-dot" style="background: #9CDCFE;"></span>
-                    feature/graph-bezier
-                </li>
-                <li class="branch-item">
-                    <span class="branch-dot" style="background: #DCDCAA;"></span>
-                    release/2.4.0
-                </li>
-                <li class="branch-item">
-                    <span class="branch-dot" style="background: #F48771;"></span>
-                    hotfix/auth-token-refresh
-                </li>
-                <li class="branch-item">
-                    <span class="branch-dot" style="background: #4EC9B0;"></span>
-                    experiment/wasm-diff
-                </li>
+                ${SidebarRenderer.branchItems(gitDataService.getBranchSummary())}
             </ul>
         </div>
 
         <div>
             <div class="section-title">Tags</div>
             <ul class="tag-list">
-                <li class="tag-item">
-                    <span class="tag-icon">🏷</span>
-                    v2.3.4
-                </li>
-                <li class="tag-item">
-                    <span class="tag-icon">🏷</span>
-                    v2.3.3
-                </li>
-                <li class="tag-item">
-                    <span class="tag-icon">🏷</span>
-                    v2.3.0
-                </li>
+                ${SidebarRenderer.tagItems(gitDataService.getTagSummary())}
             </ul>
         </div>
     </div>
@@ -244,4 +205,5 @@ export class HiGitSidebarProvider implements vscode.WebviewViewProvider {
 </body>
 </html>`;
   }
+
 }

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { getNonce } from '../utilities/getNonce.js';
+import { getNonce } from '@utilities/getNonce.js';
+import { gitDataService } from '@services/GitDataService.js';
 
 /**
  * Manages the full-window webview panel showing the Git graph.
@@ -80,28 +81,18 @@ export class HiGitPanel {
   }
 
   private _getWebviewContent(webview: vscode.Webview): string {
-    // --- CSS ---
     const stylesUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'src', 'frontend', 'styles.css')
     );
-
-    // --- React vendor (UMD builds) ---
     const reactUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'media', 'vendor', 'react.production.min.js')
     );
     const reactDomUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'media', 'vendor', 'react-dom.production.min.js')
     );
-
-    // --- App scripts (non-JSX, loaded directly from frontend/) ---
-    const dataUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'src', 'frontend', 'data.js')
-    );
     const graphUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'src', 'frontend', 'graph.js')
     );
-
-    // --- Transpiled JSX → JS (from media/webview/) ---
     const networkUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'media', 'webview', 'network.js')
     );
@@ -113,6 +104,9 @@ export class HiGitPanel {
     );
 
     const nonce = getNonce();
+    // Escape </script> sequences so the inlined JSON cannot break the script tag
+    const repoDataJson = JSON.stringify(gitDataService.getRepoData())
+      .replace(/<\/script>/gi, '<\\/script>');
 
     return /* html */ `<!DOCTYPE html>
 <html lang="en" data-theme="dark">
@@ -136,8 +130,10 @@ export class HiGitPanel {
     <script nonce="${nonce}" src="${reactUri}"></script>
     <script nonce="${nonce}" src="${reactDomUri}"></script>
 
-    <!-- App data & utilities -->
-    <script nonce="${nonce}" src="${dataUri}"></script>
+    <!-- Repo data from GitDataService (replaces static data.js) -->
+    <script nonce="${nonce}">window.GITNEXUS_DATA = ${repoDataJson};</script>
+
+    <!-- Graph layout utility -->
     <script nonce="${nonce}" src="${graphUri}"></script>
 
     <!-- React components (transpiled from JSX) -->
