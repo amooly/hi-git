@@ -8,10 +8,10 @@
 → See [docs/architecture.md](docs/architecture.md) for tech stack, layers, folder structure, and dependency rules.
 
 Key constraints for AI agents:
-- Edit only `src/` (extension host) and `src/frontend/` (webview UI). Never edit `media/vendor/`, `media/webview/`, or `out/` — these are generated.
+- Edit only `src/extension/` (extension host) and `src/webview/` (webview UI). Never edit `media/vendor/`, `media/webview/`, or `out/` — these are generated.
 - Extension host ↔ webview communication is via `postMessage` only. No shared imports across the boundary.
 - The webview has no bundler at runtime. New modules must be exposed as `window.X` globals and added to the script load order in the HTML template.
-- `src/utilities/` is for stateless helper functions with no external I/O. `src/components/` is for adapters that invoke external providers (git, file system, HTTP). Do not place I/O-capable code in `utilities/`, and do not place pure functions in `components/`.
+- `src/extension/utilities/` is for stateless helper functions with no external I/O. `src/extension/components/` is for adapters that invoke external providers (git, file system, HTTP). Do not place I/O-capable code in `utilities/`, and do not place pure functions in `components/`.
 
 ## Documentation
 → See [docs/features/](docs/features/) for feature-level data flows and API docs.
@@ -24,9 +24,9 @@ Key constraints for AI agents:
 → See [docs/coding_conventions.md](docs/coding_conventions.md) for global coding patterns, style rules, and gotchas.
 
 Key constraints for AI agents:
-- All relative TypeScript imports in `src/` must use `.js` extensions (Node16 module resolution).
-- After editing any `.jsx` file in `src/frontend/`, the project must be rebuilt (`npm run compile`) before changes are visible in VS Code.
-- No CSS-in-JS, no Tailwind. All styles go in `src/frontend/styles.css` using CSS custom properties.
+- All relative TypeScript imports in `src/extension/` must use `.js` extensions (Node16 module resolution).
+- After editing any `.jsx` file in `src/webview/`, the project must be rebuilt (`npm run compile`) before changes are visible in VS Code.
+- No CSS-in-JS, no Tailwind. All styles go in `src/webview/styles.css` using CSS custom properties.
 
 ## Rules
 - Never add external CDN script sources — the webview CSP blocks them. Ship dependencies as local files in `media/vendor/`.

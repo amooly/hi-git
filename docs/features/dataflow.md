@@ -46,12 +46,12 @@ app.js           → mounts <App /> to #root
 ### React Component Tree & Data Flow
 
 ```
-App  (src/frontend/app.jsx)
+App  (src/webview/app.jsx)
  ├─ state: theme, view, density, nodeStyle, showFilters, editMode
  ├─ reads:  window.GITNEXUS_DATA  (passed down as `data` prop)
  ├─ persists: theme + view to localStorage
  │
- └─► GitNexusPanel  (src/frontend/panel.jsx)
+ └─► GitNexusPanel  (src/webview/panel.jsx)
       ├─ props: data, theme, view, rowH, density, nodeStyle, showFilters
       ├─ state: filters{sha,msg,author,date}, selectedSha, contextMenu, detailOpen, hoverRemote
       ├─ calls: window.GitGraph.buildEdges(data.COMMITS, rowH)  → SVG edge paths
@@ -122,4 +122,4 @@ The sidebar sends one message type and receives none back from the host.
 | Context menu actions | All no-ops | Wire to extension commands via `postMessage` |
 | Ahead/behind meta | Hardcoded map in service | Derive from `git rev-list --count` |
 
-The `postMessage` channel is the right mechanism for refresh: the host calls `webview.postMessage({ type: 'update', data: gitDataService.getRepoData() })` and the frontend handles it in `App` via `window.addEventListener('message', ...)`.
+The `postMessage` channel is the right mechanism for refresh: the host calls `webview.postMessage({ type: 'update', data: gitDataService.getRepoData() })` and the webview handles it in `App` via `window.addEventListener('message', ...)`.

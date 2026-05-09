@@ -28,7 +28,7 @@ const watchPlugin = {
 
 // ---------- Target 1: Extension host ----------
 const extensionConfig = {
-  entryPoints: ['src/extension.ts'],
+  entryPoints: ['src/extension/extension.ts'],
   bundle: true,
   outfile: 'out/extension.js',
   external: ['vscode'],
@@ -38,16 +38,16 @@ const extensionConfig = {
   sourcemap: true,
   minify: false,
   alias: {
-    '@services': path.resolve(__dirname, 'src/services'),
-    '@panels': path.resolve(__dirname, 'src/panels'),
-    '@utilities': path.resolve(__dirname, 'src/utilities'),
-    '@types': path.resolve(__dirname, 'src/types'),
+    '@services': path.resolve(__dirname, 'src/extension/services'),
+    '@panels': path.resolve(__dirname, 'src/extension/panels'),
+    '@utilities': path.resolve(__dirname, 'src/extension/utilities'),
+    '@types': path.resolve(__dirname, 'src/extension/types'),
   },
   plugins: [watchPlugin],
 };
 
 // ---------- Target 2: Webview JSX transpilation ----------
-const jsxFiles = ['src/frontend/app.jsx', 'src/frontend/panel.jsx', 'src/frontend/network.jsx'];
+const jsxFiles = ['src/webview/app.jsx', 'src/webview/panel.jsx', 'src/webview/network.jsx'];
 
 const webviewConfig = {
   entryPoints: jsxFiles,
@@ -106,8 +106,8 @@ async function build() {
     await extCtx.watch();
     await webCtx.watch();
 
-    console.log('  Extension host: watching src/**/*.ts');
-    console.log('  Webview JSX:    watching src/frontend/**/*.jsx');
+    console.log('  Extension host: watching src/extension/**/*.ts');
+    console.log('  Webview JSX:    watching src/webview/**/*.jsx');
     console.log('');
   } else {
     // One-shot build

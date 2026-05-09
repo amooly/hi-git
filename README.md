@@ -48,22 +48,23 @@
 ```
 hi-git/
 │
-├── src/                          # Extension host TypeScript source
-│   ├── extension.ts              # Entry point — activate(), registers commands & views
-│   ├── panels/
-│   │   ├── HiGitPanel.ts         # Manages the full-screen graph WebviewPanel
-│   │   └── HiGitSidebarProvider.ts  # Manages the activity bar sidebar WebviewView
-│   └── utilities/
-│       └── getNonce.ts           # CSP nonce generator
-│
-├── frontend/                     # Webview React source (authored as JSX)
-│   ├── GitNexus.html             # Standalone dev harness (open directly in browser)
-│   ├── app.jsx                   # Root React component + VSCode chrome wrapper
-│   ├── panel.jsx                 # Main commits table, header, filter bar, detail panel
-│   ├── network.jsx               # Branch Relations "river" SVG view
-│   ├── data.js                   # Static sample repo data (COMMITS, BRANCHES, etc.)
-│   ├── graph.js                  # SVG graph edge computation (Bezier curves, lane layout)
-│   ├── styles.css                # All component styles + VSCode dark/light theme tokens
+├── src/
+│   ├── extension/                # Extension host TypeScript source
+│   │   ├── extension.ts          # Entry point — activate(), registers commands & views
+│   │   ├── panels/
+│   │   │   ├── HiGitPanel.ts     # Manages the full-screen graph WebviewPanel
+│   │   │   └── HiGitSidebarProvider.ts  # Manages the activity bar sidebar WebviewView
+│   │   └── utilities/
+│   │       └── getNonce.ts       # CSP nonce generator
+│   │
+│   └── webview/                  # Webview React source (authored as JSX)
+│       ├── GitNexus.html         # Standalone dev harness (open directly in browser)
+│       ├── app.jsx               # Root React component + VSCode chrome wrapper
+│       ├── panel.jsx             # Main commits table, header, filter bar, detail panel
+│       ├── network.jsx           # Branch Relations "river" SVG view
+│       ├── data.js               # Static sample repo data (COMMITS, BRANCHES, etc.)
+│       ├── graph.js              # SVG graph edge computation (Bezier curves, lane layout)
+│       └── styles.css            # All component styles + VSCode dark/light theme tokens
 │
 ├── media/                        # Generated/static assets consumed by the webview at runtime
 │   ├── icon.svg                  # Activity bar icon (Hi Git sidebar entry)
@@ -89,7 +90,7 @@ hi-git/
 └── .gitignore
 ```
 
-> **Do not edit files in `media/vendor/`, `media/webview/`, or `out/`** — these are generated at build time and are git-ignored. Edit the source files in `frontend/` and `src/` instead.
+> **Do not edit files in `media/vendor/`, `media/webview/`, or `out/`** — these are generated at build time and are git-ignored. Edit the source files in `src/webview/` and `src/extension/` instead.
 
 ---
 
@@ -113,7 +114,7 @@ npm install
 # One-shot build (compile TS + transpile JSX + copy vendor files)
 npm run compile
 
-# Watch mode — auto-rebuilds on any change in src/ or frontend/
+# Watch mode — auto-rebuilds on any change in src/
 npm run watch
 ```
 
@@ -124,14 +125,14 @@ npm run watch
 3. In the new window, open the **Command Palette** (`Cmd+Shift+P`) and run **"Hi Git: Show Graph"**
 4. Or click the **Hi Git icon** in the activity bar to open the sidebar
 
-> **Tip:** With `npm run watch` running in the background, changes to `src/` or `frontend/` trigger an automatic rebuild. Reload the Extension Development Host window (`Cmd+R`) to see changes.
+> **Tip:** With `npm run watch` running in the background, changes to `src/` trigger an automatic rebuild. Reload the Extension Development Host window (`Cmd+R`) to see changes.
 
-### Working on the frontend (UI)
+### Working on the webview (UI)
 
-The easiest frontend development loop is to **open `frontend/GitNexus.html` directly in a browser** — this bypasses the extension entirely and uses CDN React + in-browser Babel for instant iteration (no build step needed). Once you're happy, the production build will transpile the JSX.
+The easiest webview development loop is to **open `src/webview/GitNexus.html` directly in a browser** — this bypasses the extension entirely and uses CDN React + in-browser Babel for instant iteration (no build step needed). Once you're happy, the production build will transpile the JSX.
 
 ```
-# In browser: open frontend/GitNexus.html
+# In browser: open src/webview/GitNexus.html
 # Live refresh, no build needed, CDN React + Babel
 #
 # Then when ready to test in VS Code:
@@ -348,9 +349,9 @@ import { getNonce } from '../utilities/getNonce';
 ```
 
 ### Editing JSX requires a rebuild
-The `.jsx` files in `frontend/` are pre-transpiled by esbuild. After editing them, you must rebuild (`npm run compile` or let `watch` mode pick it up) before the changes appear in the webview.
+The `.jsx` files in `src/webview/` are pre-transpiled by esbuild. After editing them, you must rebuild (`npm run compile` or let `watch` mode pick it up) before the changes appear in the webview.
 
-### `frontend/GitNexus.html` uses CDN React
+### `src/webview/GitNexus.html` uses CDN React
 The standalone HTML harness uses CDN-hosted React + Babel for rapid browser-based iteration. This is **only for development** — the actual extension loads everything locally to satisfy the webview CSP.
 
 ### `localStorage` in webviews

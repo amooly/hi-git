@@ -36,7 +36,7 @@ export class HiGitPanel {
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [
-          vscode.Uri.joinPath(extensionUri, 'src', 'frontend'),
+          vscode.Uri.joinPath(extensionUri, 'src', 'webview'),
           vscode.Uri.joinPath(extensionUri, 'media'),
         ],
       }
@@ -96,7 +96,7 @@ export class HiGitPanel {
 
   private _getWebviewContent(webview: vscode.Webview): string {
     const stylesUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'src', 'frontend', 'styles.css')
+      vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'styles.css')
     );
     const reactUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'media', 'vendor', 'react.production.min.js')
@@ -105,7 +105,7 @@ export class HiGitPanel {
       vscode.Uri.joinPath(this._extensionUri, 'media', 'vendor', 'react-dom.production.min.js')
     );
     const graphUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'src', 'frontend', 'graph.js')
+      vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'graph.js')
     );
     const networkUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'media', 'webview', 'network.js')

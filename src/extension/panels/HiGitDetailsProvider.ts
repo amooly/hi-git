@@ -207,7 +207,7 @@ export class HiGitDetailsProvider implements vscode.WebviewViewProvider {
             el.style.display = 'flex';
 
             const files = [
-                { p: 'src/' + c.branch.split('/').pop() + '/index.ts', t: 'mod' },
+                { p: 'src/extension/' + c.branch.split('/').pop() + '/index.ts', t: 'mod' },
                 { p: 'CHANGELOG.md', t: 'mod' },
             ];
 

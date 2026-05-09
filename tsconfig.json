@@ -7,10 +7,10 @@
     "rootDir": "src",
     "baseUrl": ".",
     "paths": {
-      "@services/*": ["src/services/*"],
-      "@panels/*": ["src/panels/*"],
-      "@utilities/*": ["src/utilities/*"],
-      "@types/*": ["src/types/*"]
+      "@services/*": ["src/extension/services/*"],
+      "@panels/*": ["src/extension/panels/*"],
+      "@utilities/*": ["src/extension/utilities/*"],
+      "@types/*": ["src/extension/types/*"]
     },
     "sourceMap": true,
     "strict": true,
@@ -22,5 +22,5 @@
     "declarationMap": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "out", "src/frontend", "media"]
+  "exclude": ["node_modules", "out", "src/webview", "media"]
 }

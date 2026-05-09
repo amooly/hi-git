@@ -4,7 +4,7 @@
 
 ## Naming
 
-- React component files use `.jsx` extension (in `src/frontend/`).
+- React component files use `.jsx` extension (in `src/webview/`).
 - Extension host files use `.ts` extension (in `src/`).
 - Generated output files mirror their source name (e.g., `panel.jsx` → `media/webview/panel.js`).
 
@@ -16,7 +16,7 @@
 ## Patterns
 
 - All webview modules expose themselves as globals on `window` (e.g., `window.GitGraph`, `window.GitNexusPanel`) — there is no bundler in the webview runtime.
-- Design tokens and VS Code semantic tokens are defined per-theme in `src/frontend/styles.css`.
+- Design tokens and VS Code semantic tokens are defined per-theme in `src/webview/styles.css`.
 - Theme and view preferences are persisted to `localStorage` in the webview.
 
 ### Service singletons
@@ -89,9 +89,9 @@ import { getNonce } from '@utilities/getNonce';
 
 ### Editing JSX requires a rebuild
 
-The `.jsx` files in `src/frontend/` are pre-transpiled by esbuild. After editing them, run `npm run compile` (or let `watch` mode pick it up) before changes appear in the webview.
+The `.jsx` files in `src/webview/` are pre-transpiled by esbuild. After editing them, run `npm run compile` (or let `watch` mode pick it up) before changes appear in the webview.
 
-### `src/frontend/GitNexus.html` uses CDN React
+### `src/webview/GitNexus.html` uses CDN React
 
 The standalone HTML harness uses CDN React + Babel for rapid browser iteration only. The actual extension loads everything locally to satisfy the webview CSP.
 
