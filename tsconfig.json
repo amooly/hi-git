@@ -10,7 +10,7 @@
       "@services/*": ["src/extension/services/*"],
       "@panels/*": ["src/extension/panels/*"],
       "@utilities/*": ["src/extension/utilities/*"],
-      "@types/*": ["src/extension/types/*"]
+      "@shared/*": ["src/shared/*"]
     },
     "sourceMap": true,
     "strict": true,

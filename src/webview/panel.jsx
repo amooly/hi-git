@@ -165,7 +165,7 @@ function GitNexusPanel({
                 className={`gx-row ${selectedSha === c.sha ? 'selected' : ''} ${out ? 'filtered-out' : ''}`}
                 onClick={() => {
                   setSelectedSha(c.sha);
-                  window.__vsApi?.postMessage({ type: 'commitSelected', commit: c, branch: data.BRANCHES[c.branch] });
+                  window.vscodeAPI?.postEvent('commitSelected', { commit: c, branch: data.BRANCHES[c.branch] });
                 }}
                 onContextMenu={(e) => onRowContext(e, c.sha)}
               >

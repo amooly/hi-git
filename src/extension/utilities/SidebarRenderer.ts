@@ -1,4 +1,4 @@
-import type { BranchSummaryEntry, TagSummaryEntry } from '../types/index.js';
+import type { BranchSummaryEntry, TagSummaryEntry } from '@shared/types/index.js';
 
 export class SidebarRenderer {
   static branchItems(branches: BranchSummaryEntry[]): string {

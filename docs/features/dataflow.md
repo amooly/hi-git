@@ -76,6 +76,48 @@ webview → parent:  { type: '__edit_mode_set_keys', edits }    // persist tweak
 
 ---
 
+## Webview ↔ Extension Host: Request-Response Pattern
+
+The project uses an industry-standard `requestId` pattern to simulate asynchronous, Promise-based communication over the unidirectional `postMessage` channel.
+
+### 1. Shared Types
+Message payloads and shapes are strictly typed in `src/shared/types/messages.ts`. Both the Extension Host and the Webview consume these types via type-only imports (`import type`).
+
+### 2. Webview to Host (Requesting Data)
+The webview uses a global wrapper (`window.vscodeAPI`) which handles the `requestId` boilerplate.
+
+```typescript
+// In the webview UI (React components)
+import type { RepoData } from '../shared/types/git.js';
+
+async function fetchRepoData() {
+  try {
+    // Generates a unique requestId and waits for the matching response
+    const data = await window.vscodeAPI.request<'getRepoData', void, RepoData>('getRepoData');
+    console.log("Got data:", data);
+  } catch (err) {
+    console.error("Failed to fetch repo data:", err);
+  }
+}
+```
+
+### 3. Host to Webview (Handling Requests)
+The extension host uses the `MessageHandler` utility class to automatically route requests and return responses with the correct `requestId`.
+
+```typescript
+// In the extension host (e.g., HiGitPanel.ts)
+import { MessageHandler } from '@utilities/MessageHandler.js';
+
+const messageHandler = new MessageHandler(panel.webview, disposables);
+
+// Register a handler for the 'getRepoData' command
+messageHandler.registerHandler('getRepoData', async () => {
+  return gitDataService.getRepoData();
+});
+```
+
+---
+
 ## Sidebar
 
 `HiGitSidebarProvider` renders HTML at `resolveWebviewView()` time. Branch and tag lists are generated from `GitDataService` — no hardcoded strings in the provider.
@@ -118,8 +160,6 @@ The sidebar sends one message type and receives none back from the host.
 | Area | Current State | What's Missing |
 |---|---|---|
 | Data source | Hardcoded in `GitDataService` | Real `git log` / `git branch` calls |
-| Data refresh | Static at panel open | Re-call service methods and re-inject via `webview.postMessage()` |
-| Context menu actions | All no-ops | Wire to extension commands via `postMessage` |
-| Ahead/behind meta | Hardcoded map in service | Derive from `git rev-list --count` |
-
-The `postMessage` channel is the right mechanism for refresh: the host calls `webview.postMessage({ type: 'update', data: gitDataService.getRepoData() })` and the webview handles it in `App` via `window.addEventListener('message', ...)`.
+| Data refresh | Static at panel open | Replace inline data injection with Promise-based `window.vscodeAPI.request()` calls |
+| Context menu actions | All no-ops | Wire to extension commands via `window.vscodeAPI.postEvent()` |
+| Ahead/behind meta | Hardcoded map in service | Derive from `git rev-list --count` |.

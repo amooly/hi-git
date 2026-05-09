@@ -57,7 +57,7 @@ export class HiGitPanel {
     this._panel.webview.onDidReceiveMessage(
       (message) => {
         if (message.type === 'commitSelected' && this._detailsProvider) {
-          this._detailsProvider.showCommit(message.commit, message.branch);
+          this._detailsProvider.showCommit(message.payload?.commit, message.payload?.branch);
         }
       },
       null,
@@ -107,6 +107,9 @@ export class HiGitPanel {
     const graphUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'graph.js')
     );
+    const vscodeApiUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'webview', 'vscodeApi.js')
+    );
     const networkUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'media', 'webview', 'network.js')
     );
@@ -147,8 +150,8 @@ export class HiGitPanel {
     <!-- Repo data from GitDataService (replaces static data.js) -->
     <script nonce="${nonce}">window.GITNEXUS_DATA = ${repoDataJson};</script>
 
-    <!-- VSCode API (must be acquired once before React components) -->
-    <script nonce="${nonce}">window.__vsApi = acquireVsCodeApi();</script>
+    <!-- VSCode API Wrapper (exposes window.vscodeAPI) -->
+    <script nonce="${nonce}" src="${vscodeApiUri}"></script>
 
     <!-- Graph layout utility -->
     <script nonce="${nonce}" src="${graphUri}"></script>

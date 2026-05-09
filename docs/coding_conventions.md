@@ -15,6 +15,14 @@
 
 ## Patterns
 
+### Cross-Boundary Communication
+
+The extension host (`src/extension/`) and webview UI (`src/webview/`) run in separate environments.
+- **Data Sharing**: Use `postMessage` exclusively.
+- **Type Sharing**: You may share TypeScript types and interfaces between the extension and webview by placing them in `src/shared/types/` and using `import type` (type-only imports).
+- **Utility Sharing Prohibited**: Do not share runtime utilities. The webview runs in the browser and the host in Node.js.
+- **Request-Response**: When the webview needs data from the host, use the `requestId` pattern. Generate a unique `requestId` with the outgoing message, and the host must include the exact same `requestId` in its response to resolve the pending Promise.
+
 - All webview modules expose themselves as globals on `window` (e.g., `window.GitGraph`, `window.GitNexusPanel`) — there is no bundler in the webview runtime.
 - Design tokens and VS Code semantic tokens are defined per-theme in `src/webview/styles.css`.
 - Theme and view preferences are persisted to `localStorage` in the webview.
@@ -57,10 +65,10 @@ Always use path aliases instead of relative paths for imports across `src/` dire
 
 | Alias | Resolves to |
 |---|---|
-| `@services/*` | `src/services/*` |
-| `@panels/*` | `src/panels/*` |
-| `@utilities/*` | `src/utilities/*` |
-| `@types/*` | `src/types/*` |
+| `@services/*` | `src/extension/services/*` |
+| `@panels/*` | `src/extension/panels/*` |
+| `@utilities/*` | `src/extension/utilities/*` |
+| `@shared/*` | `src/shared/*` |
 
 ```ts
 // correct

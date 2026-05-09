@@ -28,12 +28,13 @@
 ```
 hi-git/
 ├── src/
+│   ├── shared/                   # Shared code across boundaries
+│   │   └── types/                # Shared interfaces (no runtime code)
+│   │       ├── git.ts            # CommitData, BranchData, RepoData, …
+│   │       ├── messages.ts       # WebviewRequest, WebviewResponse
+│   │       └── ui.ts             # BranchSummaryEntry, TagSummaryEntry
 │   ├── extension/                # Extension host TypeScript source
 │   │   ├── extension.ts          # Entry point — activate(), wires services to panels
-│   │   ├── types/                # Data contracts (no logic)
-│   │   │   ├── git.ts            # CommitData, BranchData, RepoData, …
-│   │   │   ├── ui.ts             # BranchSummaryEntry, TagSummaryEntry
-│   │   │   └── index.ts          # Barrel re-export
 │   │   ├── utilities/            # Stateless helper functions (no external I/O)
 │   │   │   ├── getNonce.ts       # CSP nonce generator
 │   │   │   └── SidebarRenderer.ts # HTML fragment builders for branch/tag lists
@@ -88,7 +89,7 @@ services/    →  components/
 - `services/` — business logic; may import from `components/`, `utilities/`, and `types/`
 - `panels/` — VS Code API surface; may import from `services/` and `utilities/`
 
-Extension host and webview are fully isolated — they do not share imports. Communication is via `postMessage` only.
+Extension host and webview are fully isolated at runtime — they do not share utility functions. Communication is via `postMessage` only. However, both layers may use `import type` to consume interfaces from `src/shared/types/`.
 
 ## Webview Script Load Order
 

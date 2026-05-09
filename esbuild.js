@@ -41,13 +41,13 @@ const extensionConfig = {
     '@services': path.resolve(__dirname, 'src/extension/services'),
     '@panels': path.resolve(__dirname, 'src/extension/panels'),
     '@utilities': path.resolve(__dirname, 'src/extension/utilities'),
-    '@types': path.resolve(__dirname, 'src/extension/types'),
+    '@shared': path.resolve(__dirname, 'src/shared'),
   },
   plugins: [watchPlugin],
 };
 
 // ---------- Target 2: Webview JSX transpilation ----------
-const jsxFiles = ['src/webview/app.jsx', 'src/webview/panel.jsx', 'src/webview/network.jsx'];
+const jsxFiles = ['src/webview/app.jsx', 'src/webview/panel.jsx', 'src/webview/network.jsx', 'src/webview/vscodeApi.ts'];
 
 const webviewConfig = {
   entryPoints: jsxFiles,
