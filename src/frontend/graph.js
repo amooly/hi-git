@@ -26,9 +26,12 @@ function edgePath(x1, y1, x2, y2) {
 
 /**
  * Build the full set of edges for the commit list.
+ * @param {object[]} commits - ordered newest→oldest
+ * @param {number} rowH - row height in px
+ * @param {object} branches - BRANCHES map from GITNEXUS_DATA
  * Returns: { edges: [{path, color, key}], graphWidth }
  */
-function buildEdges(commits, rowH) {
+function buildEdges(commits, rowH, branches) {
   const byShaIndex = new Map();
   commits.forEach((c, i) => byShaIndex.set(c.sha, i));
 
@@ -51,13 +54,13 @@ function buildEdges(commits, rowH) {
       // spurs leaving main are colored by the branch they spawn.
       let edgeColor;
       if (c.lane === parent.lane) {
-        edgeColor = window.GITNEXUS_DATA.BRANCHES[c.branch].color;
+        edgeColor = branches[c.branch].color;
       } else if (c.parents.length > 1) {
         // merge: this edge brings parent's branch INTO c's branch
-        edgeColor = window.GITNEXUS_DATA.BRANCHES[parent.branch].color;
+        edgeColor = branches[parent.branch].color;
       } else {
         // spawn: c is on a new branch off parent's lane
-        edgeColor = window.GITNEXUS_DATA.BRANCHES[c.branch].color;
+        edgeColor = branches[c.branch].color;
       }
       edges.push({
         d: edgePath(cx, cy, px, py),

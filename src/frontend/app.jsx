@@ -9,6 +9,9 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "showVscChrome": false
 }/*EDITMODE-END*/;
 
+// Resolved once at module load — window.GitNexusPanel is set before React mounts
+const Panel = window.GitNexusPanel;
+
 function App() {
   const [theme, setTheme] = React.useState(() => localStorage.getItem('gx-theme') || 'dark');
   const [view, setView] = React.useState(() => localStorage.getItem('gx-view') || 'history');
@@ -28,17 +31,17 @@ function App() {
       if (e.data?.type === '__deactivate_edit_mode') setEditMode(false);
     };
     window.addEventListener('message', onMsg);
-    window.parent.postMessage({type: '__edit_mode_available'}, '*');
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
     return () => window.removeEventListener('message', onMsg);
   }, []);
 
   const persist = (edits) => {
-    window.parent.postMessage({type: '__edit_mode_set_keys', edits}, '*');
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
   };
 
   const rowH = density === 'compact' ? 28 : density === 'cozy' ? 32 : 36;
 
-  const Panel = window.GitNexusPanel;
+
   const panel = (
     <Panel
       data={window.GITNEXUS_DATA}
@@ -65,7 +68,7 @@ function App() {
             <div className="tweak-row">
               <label>Theme</label>
               <div className="tweak-segmented">
-                {['dark','light'].map(t => (
+                {['dark', 'light'].map(t => (
                   <button key={t} className={theme === t ? 'active' : ''} onClick={() => setTheme(t)}>{t}</button>
                 ))}
               </div>
@@ -73,25 +76,25 @@ function App() {
             <div className="tweak-row">
               <label>Row density</label>
               <div className="tweak-segmented">
-                {['compact','cozy','comfortable'].map(d => (
+                {['compact', 'cozy', 'comfortable'].map(d => (
                   <button key={d} className={density === d ? 'active' : ''}
-                          onClick={() => { setDensity(d); persist({density: d}); }}>{d}</button>
+                    onClick={() => { setDensity(d); persist({ density: d }); }}>{d}</button>
                 ))}
               </div>
             </div>
             <div className="tweak-row">
               <label>Graph node</label>
               <div className="tweak-segmented">
-                {['dot','square','ring'].map(s => (
+                {['dot', 'square', 'ring'].map(s => (
                   <button key={s} className={nodeStyle === s ? 'active' : ''}
-                          onClick={() => { setNodeStyle(s); persist({nodeStyle: s}); }}>{s}</button>
+                    onClick={() => { setNodeStyle(s); persist({ nodeStyle: s }); }}>{s}</button>
                 ))}
               </div>
             </div>
             <div className="tweak-row">
               <label>View</label>
               <div className="tweak-segmented">
-                {['history','network'].map(v => (
+                {['history', 'network'].map(v => (
                   <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>{v}</button>
                 ))}
               </div>
@@ -100,18 +103,18 @@ function App() {
               <label>Filter bar</label>
               <div className="tweak-segmented">
                 <button className={showFilters ? 'active' : ''}
-                        onClick={() => { setShowFilters(true); persist({showFilters: true}); }}>shown</button>
+                  onClick={() => { setShowFilters(true); persist({ showFilters: true }); }}>shown</button>
                 <button className={!showFilters ? 'active' : ''}
-                        onClick={() => { setShowFilters(false); persist({showFilters: false}); }}>collapsed</button>
+                  onClick={() => { setShowFilters(false); persist({ showFilters: false }); }}>collapsed</button>
               </div>
             </div>
             <div className="tweak-row">
               <label>VSCode chrome</label>
               <div className="tweak-segmented">
                 <button className={showVscChrome ? 'active' : ''}
-                        onClick={() => { setShowVscChrome(true); persist({showVscChrome: true}); }}>shown</button>
+                  onClick={() => { setShowVscChrome(true); persist({ showVscChrome: true }); }}>shown</button>
                 <button className={!showVscChrome ? 'active' : ''}
-                        onClick={() => { setShowVscChrome(false); persist({showVscChrome: false}); }}>hidden</button>
+                  onClick={() => { setShowVscChrome(false); persist({ showVscChrome: false }); }}>hidden</button>
               </div>
             </div>
           </div>
@@ -151,62 +154,62 @@ function VSCodeChrome({ children }) {
       <div className="sidebar">
         <div className="sidebar-title">
           <span>Source Control</span>
-          <span className="codicon" style={{fontSize:14, color:'var(--vsc-fg-2)'}}>more_horiz</span>
+          <span className="codicon" style={{ fontSize: 14, color: 'var(--vsc-fg-2)' }}>more_horiz</span>
         </div>
         <div className="sidebar-section">
           <div className="sidebar-section-title">
-            <span className="codicon" style={{fontSize:11}}>chevron_right</span>
+            <span className="codicon" style={{ fontSize: 11 }}>chevron_right</span>
             Changes (3)
           </div>
-          <div className="sidebar-item"><span className="codicon">description</span>panel.jsx<span className="sidebar-item-meta" style={{color:'var(--vsc-fg-warning)'}}>M</span></div>
-          <div className="sidebar-item"><span className="codicon">description</span>graph.js<span className="sidebar-item-meta" style={{color:'var(--vsc-fg-success)'}}>U</span></div>
-          <div className="sidebar-item"><span className="codicon">description</span>styles.css<span className="sidebar-item-meta" style={{color:'var(--vsc-fg-warning)'}}>M</span></div>
+          <div className="sidebar-item"><span className="codicon">description</span>panel.jsx<span className="sidebar-item-meta" style={{ color: 'var(--vsc-fg-warning)' }}>M</span></div>
+          <div className="sidebar-item"><span className="codicon">description</span>graph.js<span className="sidebar-item-meta" style={{ color: 'var(--vsc-fg-success)' }}>U</span></div>
+          <div className="sidebar-item"><span className="codicon">description</span>styles.css<span className="sidebar-item-meta" style={{ color: 'var(--vsc-fg-warning)' }}>M</span></div>
         </div>
         <div className="sidebar-section">
           <div className="sidebar-section-title">
-            <span className="codicon" style={{fontSize:11}}>expand_more</span>
+            <span className="codicon" style={{ fontSize: 11 }}>expand_more</span>
             Branches (7)
           </div>
           <div className="sidebar-item current">
-            <span className="branch-dot" style={{background:'var(--branch-main)'}}/>
+            <span className="branch-dot" style={{ background: 'var(--branch-main)' }} />
             main
             <span className="sidebar-item-meta">↑2 ↓0</span>
           </div>
           <div className="sidebar-item">
-            <span className="branch-dot" style={{background:'var(--branch-develop)'}}/>
+            <span className="branch-dot" style={{ background: 'var(--branch-develop)' }} />
             develop
             <span className="sidebar-item-meta">↓3</span>
           </div>
           <div className="sidebar-item">
-            <span className="branch-dot" style={{background:'var(--branch-feature)'}}/>
+            <span className="branch-dot" style={{ background: 'var(--branch-feature)' }} />
             feature/network-view
             <span className="sidebar-item-meta">↑2</span>
           </div>
           <div className="sidebar-item">
-            <span className="branch-dot" style={{background:'var(--branch-feature)'}}/>
+            <span className="branch-dot" style={{ background: 'var(--branch-feature)' }} />
             feature/graph-bezier
           </div>
           <div className="sidebar-item">
-            <span className="branch-dot" style={{background:'var(--branch-release)'}}/>
+            <span className="branch-dot" style={{ background: 'var(--branch-release)' }} />
             release/2.4.0
           </div>
           <div className="sidebar-item">
-            <span className="branch-dot" style={{background:'var(--branch-hotfix)'}}/>
+            <span className="branch-dot" style={{ background: 'var(--branch-hotfix)' }} />
             hotfix/auth-token-refresh
           </div>
           <div className="sidebar-item">
-            <span className="branch-dot" style={{background:'var(--branch-experiment)'}}/>
+            <span className="branch-dot" style={{ background: 'var(--branch-experiment)' }} />
             experiment/wasm-diff
           </div>
         </div>
         <div className="sidebar-section">
           <div className="sidebar-section-title">
-            <span className="codicon" style={{fontSize:11}}>expand_more</span>
+            <span className="codicon" style={{ fontSize: 11 }}>expand_more</span>
             Tags (3)
           </div>
-          <div className="sidebar-item"><span className="codicon" style={{color:'var(--branch-release)'}}>sell</span>v2.3.4</div>
-          <div className="sidebar-item"><span className="codicon" style={{color:'var(--branch-release)'}}>sell</span>v2.3.3</div>
-          <div className="sidebar-item"><span className="codicon" style={{color:'var(--branch-release)'}}>sell</span>v2.3.0</div>
+          <div className="sidebar-item"><span className="codicon" style={{ color: 'var(--branch-release)' }}>sell</span>v2.3.4</div>
+          <div className="sidebar-item"><span className="codicon" style={{ color: 'var(--branch-release)' }}>sell</span>v2.3.3</div>
+          <div className="sidebar-item"><span className="codicon" style={{ color: 'var(--branch-release)' }}>sell</span>v2.3.0</div>
         </div>
       </div>
 
@@ -218,12 +221,12 @@ function VSCodeChrome({ children }) {
             <span className="codicon tab-close">close</span>
           </div>
           <div className="tab">
-            <span className="codicon" style={{color:'var(--vsc-fg-string)'}}>description</span>
+            <span className="codicon" style={{ color: 'var(--vsc-fg-string)' }}>description</span>
             README.md
             <span className="codicon tab-close">close</span>
           </div>
           <div className="tab">
-            <span className="codicon" style={{color:'var(--vsc-fg-warning)'}}>description</span>
+            <span className="codicon" style={{ color: 'var(--vsc-fg-warning)' }}>description</span>
             package.json
             <span className="codicon tab-close">close</span>
           </div>

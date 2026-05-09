@@ -17,12 +17,10 @@ function GitNexusPanel({
   data, theme, onToggleTheme, view, onToggleView,
   rowH, density, nodeStyle, showFilters, onToggleFilters,
 }) {
-  const [filters, setFilters] = React.useState({ sha:'', msg:'', author:'', date:'' });
+  const [filters, setFilters] = React.useState({ sha: '', msg: '', author: '', date: '' });
   const [selectedSha, setSelectedSha] = React.useState(data.COMMITS[0].sha);
   const [contextMenu, setContextMenu] = React.useState(null); // {x,y,sha}
   const [refreshing, setRefreshing] = React.useState(false);
-  const [detailOpen, setDetailOpen] = React.useState(false);
-  const [hoverRemote, setHoverRemote] = React.useState(false);
 
   const tableWrapRef = React.useRef(null);
 
@@ -32,18 +30,18 @@ function GitNexusPanel({
     data.COMMITS.forEach(c => {
       if (filters.sha && !c.sha.toLowerCase().includes(filters.sha.toLowerCase())) out.add(c.sha);
       else if (filters.msg && !c.msg.toLowerCase().includes(filters.msg.toLowerCase()) &&
-               !c.refs.some(r => r.name.toLowerCase().includes(filters.msg.toLowerCase()))) out.add(c.sha);
+        !c.refs.some(r => r.name.toLowerCase().includes(filters.msg.toLowerCase()))) out.add(c.sha);
       else if (filters.author && !c.author.toLowerCase().includes(filters.author.toLowerCase())) out.add(c.sha);
       else if (filters.date && !c.date.toLowerCase().includes(filters.date.toLowerCase()) &&
-               !c.dateAbs.toLowerCase().includes(filters.date.toLowerCase())) out.add(c.sha);
+        !c.dateAbs.toLowerCase().includes(filters.date.toLowerCase())) out.add(c.sha);
     });
     return out;
   }, [filters, data.COMMITS]);
 
   // Build SVG edges
   const { edges, graphWidth } = React.useMemo(
-    () => window.GitGraph.buildEdges(data.COMMITS, rowH),
-    [data.COMMITS, rowH]
+    () => window.GitGraph.buildEdges(data.COMMITS, rowH, data.BRANCHES),
+    [data.COMMITS, rowH, data.BRANCHES]
   );
   const graphColW = Math.max(graphWidth + 180, 260); // graph + branch label space
 
@@ -51,10 +49,15 @@ function GitNexusPanel({
   React.useEffect(() => {
     if (!contextMenu) return;
     const close = () => setContextMenu(null);
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
     window.addEventListener('click', close);
     window.addEventListener('scroll', close, true);
-    window.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
-    return () => { window.removeEventListener('click', close); window.removeEventListener('scroll', close, true); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('keydown', onKey);
+    };
   }, [contextMenu]);
 
   const onRowContext = (e, sha) => {
@@ -73,8 +76,6 @@ function GitNexusPanel({
     setContextMenu(null);
   };
 
-  const selectedCommit = data.COMMITS.find(c => c.sha === selectedSha);
-
   if (view === 'network') {
     return (
       <div className="gx-panel">
@@ -83,7 +84,6 @@ function GitNexusPanel({
           view={view} onToggleView={onToggleView}
           onRefresh={onRefresh} refreshing={refreshing}
           showFilters={showFilters} onToggleFilters={onToggleFilters}
-          hoverRemote={hoverRemote} setHoverRemote={setHoverRemote}
         />
         {React.createElement(window.BranchRelationsView, { data })}
       </div>
@@ -91,13 +91,12 @@ function GitNexusPanel({
   }
 
   return (
-    <div className="gx-panel" style={{'--graph-col-w': `${graphColW}px`, '--row-h': `${rowH}px`}}>
+    <div className="gx-panel" style={{ '--graph-col-w': `${graphColW}px`, '--row-h': `${rowH}px` }}>
       <Header
         theme={theme} onToggleTheme={onToggleTheme}
         view={view} onToggleView={onToggleView}
         onRefresh={onRefresh} refreshing={refreshing}
         showFilters={showFilters} onToggleFilters={onToggleFilters}
-        hoverRemote={hoverRemote} setHoverRemote={setHoverRemote}
       />
 
       {/* Filter bar */}
@@ -108,19 +107,19 @@ function GitNexusPanel({
         </div>
         <div className="gx-filter-cell">
           <input className="gx-filter-input" placeholder="SHA" value={filters.sha}
-                 onChange={e => setFilters({...filters, sha: e.target.value})} />
+            onChange={e => setFilters({ ...filters, sha: e.target.value })} />
         </div>
         <div className="gx-filter-cell">
           <input className="gx-filter-input" placeholder="Filter messages, branches, tags…" value={filters.msg}
-                 onChange={e => setFilters({...filters, msg: e.target.value})} />
+            onChange={e => setFilters({ ...filters, msg: e.target.value })} />
         </div>
         <div className="gx-filter-cell">
           <input className="gx-filter-input" placeholder="Author" value={filters.author}
-                 onChange={e => setFilters({...filters, author: e.target.value})} />
+            onChange={e => setFilters({ ...filters, author: e.target.value })} />
         </div>
         <div className="gx-filter-cell">
           <input className="gx-filter-input" placeholder="Date" value={filters.date}
-                 onChange={e => setFilters({...filters, date: e.target.value})} />
+            onChange={e => setFilters({ ...filters, date: e.target.value })} />
         </div>
       </div>
 
@@ -136,15 +135,15 @@ function GitNexusPanel({
           </div>
         </div>
 
-        <div className="gx-rows" style={{position: 'relative'}}>
+        <div className="gx-rows" style={{ position: 'relative' }}>
           {/* SVG graph overlay */}
           <svg className="gx-graph-svg"
-               width={graphWidth}
-               height={data.COMMITS.length * rowH}
-               style={{height: data.COMMITS.length * rowH}}>
+            width={graphWidth}
+            height={data.COMMITS.length * rowH}
+            style={{ height: data.COMMITS.length * rowH }}>
             {edges.map(e => (
               <path key={e.key} d={e.d} fill="none" stroke={e.color}
-                    strokeWidth="2" strokeLinecap="round" />
+                strokeWidth="2" strokeLinecap="round" />
             ))}
           </svg>
 
@@ -157,41 +156,46 @@ function GitNexusPanel({
             const nodeStyleProps = nodeStyle === 'square'
               ? { borderRadius: 2, width: 11, height: 11 }
               : nodeStyle === 'ring'
-              ? { background: 'var(--vsc-editor-bg)', borderColor: branch.color, borderWidth: 3, width: 13, height: 13 }
-              : { background: branch.color, borderColor: 'var(--vsc-editor-bg)' };
+                ? { background: 'var(--vsc-editor-bg)', borderColor: branch.color, borderWidth: 3, width: 13, height: 13 }
+                : { background: branch.color, borderColor: 'var(--vsc-editor-bg)' };
 
             return (
               <div
                 key={c.sha}
                 className={`gx-row ${selectedSha === c.sha ? 'selected' : ''} ${out ? 'filtered-out' : ''}`}
-                onClick={() => { setSelectedSha(c.sha); setDetailOpen(true); }}
+                onClick={() => {
+                  setSelectedSha(c.sha);
+                  window.__vsApi?.postMessage({ type: 'commitSelected', commit: c, branch: data.BRANCHES[c.branch] });
+                }}
                 onContextMenu={(e) => onRowContext(e, c.sha)}
               >
                 {/* Graph cell */}
                 <div className="gx-cell gx-cell-graph">
                   <div className="gx-graph-node"
-                       style={{
-                         left: x, top: '50%',
-                         ...(isMerge && nodeStyle !== 'ring'
-                            ? { background: 'var(--vsc-editor-bg)', borderColor: branch.color, borderWidth: 3 }
-                            : nodeStyleProps)
-                       }} />
-                  <div className="gx-graph-label" style={{paddingLeft: x + 14}}>
+                    style={{
+                      left: x, top: '50%',
+                      ...(isMerge && nodeStyle !== 'ring'
+                        ? { background: 'var(--vsc-editor-bg)', borderColor: branch.color, borderWidth: 3 }
+                        : nodeStyleProps)
+                    }} />
+                  <div className="gx-graph-label" style={{ paddingLeft: x + 14 }}>
                     {c.refs.map((r, ri) => (
                       <span key={ri}
-                            className={`gx-ref ${r.type === 'tag' ? 'gx-ref-tag'
-                                            : r.type === 'remote' ? 'gx-ref-remote' : 'gx-ref-branch'}`}
-                            data-current={r.current ? 'true' : 'false'}
-                            style={r.type !== 'tag' && r.type !== 'remote'
-                              ? { '--branch-main': branch.color, color: branch.color,
-                                  background: `color-mix(in srgb, ${branch.color} ${r.current ? 28 : 14}%, transparent)`,
-                                  borderColor: r.current ? branch.color
-                                    : `color-mix(in srgb, ${branch.color} 35%, transparent)` }
-                              : {}}>
+                        className={`gx-ref ${r.type === 'tag' ? 'gx-ref-tag'
+                          : r.type === 'remote' ? 'gx-ref-remote' : 'gx-ref-branch'}`}
+                        data-current={r.current ? 'true' : 'false'}
+                        style={r.type !== 'tag' && r.type !== 'remote'
+                          ? {
+                            '--branch-main': branch.color, color: branch.color,
+                            background: `color-mix(in srgb, ${branch.color} ${r.current ? 28 : 14}%, transparent)`,
+                            borderColor: r.current ? branch.color
+                              : `color-mix(in srgb, ${branch.color} 35%, transparent)`
+                          }
+                          : {}}>
                         <span className="codicon">
                           {r.type === 'tag' ? 'sell'
                             : r.type === 'remote' ? 'cloud'
-                            : 'call_split'}
+                              : 'call_split'}
                         </span>
                         {r.name}
                       </span>
@@ -204,16 +208,16 @@ function GitNexusPanel({
                 </div>
                 {/* Message */}
                 <div className="gx-cell" title={c.msg}>
-                  {isMerge && <span className="codicon" style={{fontSize:13, color:'var(--vsc-fg-3)', flexShrink:0}}>merge</span>}
-                  <span style={{overflow:'hidden', textOverflow:'ellipsis'}}>{c.msg.split('\n')[0]}</span>
+                  {isMerge && <span className="codicon" style={{ fontSize: 13, color: 'var(--vsc-fg-3)', flexShrink: 0 }}>merge</span>}
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.msg.split('\n')[0]}</span>
                 </div>
                 {/* Author */}
                 <div className="gx-cell">
                   <div className="gx-author">
-                    <span className="gx-avatar" style={{background: authorAvatarColor(c.author)}}>
+                    <span className="gx-avatar" style={{ background: authorAvatarColor(c.author) }}>
                       {authorInitials(c.author)}
                     </span>
-                    <span style={{overflow:'hidden', textOverflow:'ellipsis'}}>{c.author}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.author}</span>
                   </div>
                 </div>
                 {/* Date */}
@@ -230,25 +234,21 @@ function GitNexusPanel({
       {contextMenu && <ContextMenu menu={contextMenu} onCopySha={onCopySha} />}
 
       {/* Detail panel */}
-      <DetailPanel
-        open={detailOpen}
-        commit={selectedCommit}
-        onClose={() => setDetailOpen(false)}
-        branch={selectedCommit ? data.BRANCHES[selectedCommit.branch] : null}
-      />
+
     </div>
   );
 }
 
 function Header({ theme, onToggleTheme, view, onToggleView, onRefresh, refreshing,
-                  showFilters, onToggleFilters, hoverRemote, setHoverRemote }) {
+  showFilters, onToggleFilters }) {
+  const [hoverRemote, setHoverRemote] = React.useState(false);
   return (
     <div className="gx-header">
       <div className="gx-header-left">
         <span className="gx-branch-icon">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M11.75 2.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5zM9.5 3.75a2.25 2.25 0 1 1 3 2.122V6a2.5 2.5 0 0 1-2.5 2.5h-3a1 1 0 0 0-1 1v.628a2.251 2.251 0 1 1-1.5 0V5.872a2.25 2.25 0 1 1 1.5 0v3.378A2.49 2.49 0 0 1 7 9h3a1 1 0 0 0 1-1v-.128A2.252 2.252 0 0 1 9.5 5.75v-2zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.75a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z"
-                  fill="currentColor"/>
+              fill="currentColor" />
           </svg>
         </span>
         <span className="gx-user">Developer</span>
@@ -257,7 +257,7 @@ function Header({ theme, onToggleTheme, view, onToggleView, onRefresh, refreshin
       <div className="gx-header-spacer" />
       <div className="gx-header-right">
         <button className="gx-icon-btn" onClick={onToggleFilters}
-                title="Toggle filters" aria-pressed={showFilters}>
+          title="Toggle filters" aria-pressed={showFilters}>
           <span className="codicon">filter_alt</span>
         </button>
         <div className="gx-header-divider" />
@@ -268,18 +268,18 @@ function Header({ theme, onToggleTheme, view, onToggleView, onRefresh, refreshin
           <span className="codicon">{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
         </button>
         <button className="gx-icon-btn"
-                onMouseEnter={() => setHoverRemote(true)}
-                onMouseLeave={() => setHoverRemote(false)}
-                title="Open remote">
+          onMouseEnter={() => setHoverRemote(true)}
+          onMouseLeave={() => setHoverRemote(false)}
+          title="Open remote">
           <span className="codicon">open_in_new</span>
-          <span className="gx-tooltip" style={{opacity: hoverRemote ? 1 : 0, transform: hoverRemote ? 'translateY(0)' : 'translateY(-4px)'}}>
+          <span className="gx-tooltip" style={{ opacity: hoverRemote ? 1 : 0, transform: hoverRemote ? 'translateY(0)' : 'translateY(-4px)' }}>
             git@github.com:gitnexus/vscode-extension.git
           </span>
         </button>
         <div className="gx-header-divider" />
         <button className={`gx-icon-btn ${view === 'network' ? 'toggle-on' : ''}`}
-                onClick={onToggleView}
-                title={view === 'network' ? 'Show commit history' : 'Show branch relations'}>
+          onClick={onToggleView}
+          title={view === 'network' ? 'Show commit history' : 'Show branch relations'}>
           <span className="codicon">{view === 'network' ? 'list_alt' : 'account_tree'}</span>
         </button>
       </div>
@@ -287,34 +287,38 @@ function Header({ theme, onToggleTheme, view, onToggleView, onRefresh, refreshin
   );
 }
 
+// Static context menu item definitions — only `Copy commit ID` has a live closure
+// (bound to `menu.sha` at render time); all others are stubs.
+const CONTEXT_MENU_ITEMS = [
+  { icon: 'content_copy', label: 'Copy commit ID', shortcut: '⌘C', copySha: true },
+  { icon: 'sell', label: 'Copy commit message', shortcut: null },
+  { divider: true },
+  { icon: 'difference', label: 'Compare with local', shortcut: '⌘D' },
+  { icon: 'compare_arrows', label: 'Compare with previous', shortcut: null },
+  { divider: true },
+  { icon: 'download_for_offline', label: 'Checkout commit', shortcut: null },
+  { icon: 'call_split', label: 'Create branch from here', shortcut: null },
+  { icon: 'sell', label: 'Create tag at commit', shortcut: null },
+  { divider: true },
+  { icon: 'undo', label: 'Revert commit', shortcut: null },
+  { icon: 'restart_alt', label: 'Reset current branch to here', shortcut: null },
+  { divider: true },
+  { icon: 'open_in_new', label: 'Open in remote', shortcut: null },
+];
+
 function ContextMenu({ menu, onCopySha }) {
-  const items = [
-    { icon: 'content_copy',     label: 'Copy commit ID',         shortcut: '⌘C',     action: () => onCopySha(menu.sha) },
-    { icon: 'sell',             label: 'Copy commit message',    shortcut: null,     action: () => {} },
-    { divider: true },
-    { icon: 'difference',       label: 'Compare with local',     shortcut: '⌘D',     action: () => {} },
-    { icon: 'compare_arrows',   label: 'Compare with previous',  shortcut: null,     action: () => {} },
-    { divider: true },
-    { icon: 'download_for_offline', label: 'Checkout commit',    shortcut: null,     action: () => {} },
-    { icon: 'call_split',       label: 'Create branch from here', shortcut: null,    action: () => {} },
-    { icon: 'sell',             label: 'Create tag at commit',   shortcut: null,     action: () => {} },
-    { divider: true },
-    { icon: 'undo',             label: 'Revert commit',          shortcut: null,     action: () => {} },
-    { icon: 'restart_alt',      label: 'Reset current branch to here', shortcut: null, action: () => {} },
-    { divider: true },
-    { icon: 'open_in_new',      label: 'Open in remote',         shortcut: null,     action: () => {} },
-  ];
   // Clamp to viewport
-  const W = 240, H = items.length * 30;
+  const W = 240, H = CONTEXT_MENU_ITEMS.length * 30;
   const x = Math.min(menu.x, window.innerWidth - W - 8);
   const y = Math.min(menu.y, window.innerHeight - H - 8);
 
   return (
-    <div className="gx-context" style={{left: x, top: y}} onClick={e => e.stopPropagation()}>
-      {items.map((it, i) => it.divider
+    <div className="gx-context" style={{ left: x, top: y }} onClick={e => e.stopPropagation()}>
+      {CONTEXT_MENU_ITEMS.map((it, i) => it.divider
         ? <div key={i} className="gx-context-divider" />
         : (
-          <div key={i} className="gx-context-item" onClick={it.action}>
+          <div key={i} className="gx-context-item"
+            onClick={it.copySha ? () => onCopySha(menu.sha) : undefined}>
             <span className="codicon">{it.icon}</span>
             <span>{it.label}</span>
             {it.shortcut && <span className="ctx-shortcut">{it.shortcut}</span>}
@@ -325,88 +329,5 @@ function ContextMenu({ menu, onCopySha }) {
   );
 }
 
-function DetailPanel({ open, commit, onClose, branch }) {
-  if (!commit) return null;
-  // Synthetic file changes per commit
-  const FILES = {
-    'a3f9c21': [{ p: 'src/network/collapse.ts', t: 'add' }, { p: 'src/network/types.ts', t: 'mod' }],
-    'b8e4d10': [{ p: 'src/network/river.ts', t: 'add' }, { p: 'src/graph/bezier.ts', t: 'add' }, { p: 'src/network.css', t: 'add' }],
-    'c7a2f88': [{ p: 'CHANGELOG.md', t: 'mod' }, { p: 'package.json', t: 'mod' }],
-    'd1f3a09': [{ p: 'package.json', t: 'mod' }],
-    'h5b1c00': [{ p: 'src/auth/refresh.ts', t: 'mod' }, { p: 'src/auth/__tests__/refresh.test.ts', t: 'mod' }],
-  };
-  const files = FILES[commit.sha] || [
-    { p: `src/${commit.branch.split('/').pop()}/index.ts`, t: 'mod' },
-    { p: 'CHANGELOG.md', t: 'mod' },
-  ];
-
-  return (
-    <div className={`gx-detail ${open ? 'open' : ''}`}>
-      <div className="gx-detail-header">
-        <span className="gx-sha-pill">{commit.sha}</span>
-        <span style={{fontSize: 12, color: 'var(--vsc-fg-2)'}}>· {commit.dateAbs}</span>
-        <div className="gx-detail-header-spacer" />
-        <button className="gx-icon-btn" onClick={onClose} title="Close">
-          <span className="codicon">close</span>
-        </button>
-      </div>
-      <div className="gx-detail-body">
-        <div className="gx-detail-msg">{commit.msg}</div>
-
-        <div className="gx-detail-row">
-          <div className="lbl">Branch</div>
-          <div className="val" style={{display:'flex', alignItems:'center', gap:6}}>
-            <span style={{width:8, height:8, borderRadius:'50%', background: branch.color, display:'inline-block'}}/>
-            <span style={{fontFamily:'var(--gx-font-mono)', fontSize: 12}}>{commit.branch}</span>
-          </div>
-        </div>
-        <div className="gx-detail-row">
-          <div className="lbl">Author</div>
-          <div className="val">{commit.author} &lt;{commit.email}&gt;</div>
-        </div>
-        <div className="gx-detail-row">
-          <div className="lbl">Parents</div>
-          <div className="val" style={{display:'flex', gap:4, flexWrap:'wrap'}}>
-            {commit.parents.length === 0 ? <span style={{color:'var(--vsc-fg-3)'}}>none (root)</span> : null}
-            {commit.parents.map(p => <span key={p} className="gx-sha-pill">{p}</span>)}
-          </div>
-        </div>
-        {commit.refs.length > 0 && (
-          <div className="gx-detail-row">
-            <div className="lbl">Refs</div>
-            <div className="val" style={{display:'flex', gap:4, flexWrap:'wrap'}}>
-              {commit.refs.map((r,i) => (
-                <span key={i} className={`gx-ref ${r.type === 'tag' ? 'gx-ref-tag' : r.type === 'remote' ? 'gx-ref-remote' : 'gx-ref-branch'}`}
-                      style={r.type !== 'tag' && r.type !== 'remote'
-                        ? {color: branch.color, background: `color-mix(in srgb, ${branch.color} 14%, transparent)`,
-                           borderColor: `color-mix(in srgb, ${branch.color} 35%, transparent)`}
-                        : {}}>
-                  <span className="codicon">
-                    {r.type === 'tag' ? 'sell' : r.type === 'remote' ? 'cloud' : 'call_split'}
-                  </span>
-                  {r.name}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="gx-detail-files">
-          <div className="gx-detail-files-title">
-            <span className="codicon" style={{fontSize:12}}>folder_open</span>
-            Files changed · {files.length}
-          </div>
-          {files.map((f, i) => (
-            <div key={i} className="gx-detail-file">
-              <span className="codicon" style={{fontSize:13, color:'var(--vsc-fg-symbol)'}}>description</span>
-              <span style={{overflow:'hidden', textOverflow:'ellipsis'}}>{f.p}</span>
-              <span className={`badge ${f.t}`}>{f.t === 'add' ? '+' : f.t === 'del' ? '−' : 'M'}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 window.GitNexusPanel = GitNexusPanel;

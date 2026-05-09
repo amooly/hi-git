@@ -8,40 +8,40 @@ import { gitDataService } from '../services/GitDataService.js';
  * Shows a compact branch overview with a button to open the full graph.
  */
 export class HiGitSidebarProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = 'hi-git.sidebarView';
+    public static readonly viewType = 'hi-git.sidebarView';
 
-  private _view?: vscode.WebviewView;
+    private _view?: vscode.WebviewView;
 
-  constructor(private readonly _extensionUri: vscode.Uri) {}
+    constructor(private readonly _extensionUri: vscode.Uri) { }
 
-  public resolveWebviewView(
-    webviewView: vscode.WebviewView,
-    _context: vscode.WebviewViewResolveContext,
-    _token: vscode.CancellationToken
-  ) {
-    this._view = webviewView;
+    public resolveWebviewView(
+        webviewView: vscode.WebviewView,
+        _context: vscode.WebviewViewResolveContext,
+        _token: vscode.CancellationToken
+    ) {
+        this._view = webviewView;
 
-    webviewView.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [this._extensionUri],
-    };
+        webviewView.webview.options = {
+            enableScripts: true,
+            localResourceRoots: [this._extensionUri],
+        };
 
-    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
-    // Handle messages from the sidebar webview
-    webviewView.webview.onDidReceiveMessage((message) => {
-      switch (message.command) {
-        case 'showGraph':
-          vscode.commands.executeCommand('hi-git.showGraph');
-          break;
-      }
-    });
-  }
+        // Handle messages from the sidebar webview
+        webviewView.webview.onDidReceiveMessage((message) => {
+            switch (message.command) {
+                case 'showGraph':
+                    vscode.commands.executeCommand('hi-git.showGraph');
+                    break;
+            }
+        });
+    }
 
-  private _getHtmlForWebview(webview: vscode.Webview): string {
-    const nonce = getNonce();
+    private _getHtmlForWebview(webview: vscode.Webview): string {
+        const nonce = getNonce();
 
-    return /* html */ `<!DOCTYPE html>
+        return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -204,6 +204,6 @@ export class HiGitSidebarProvider implements vscode.WebviewViewProvider {
     </script>
 </body>
 </html>`;
-  }
+    }
 
 }

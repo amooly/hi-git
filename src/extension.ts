@@ -23,7 +23,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('hi-git.showGraph', () => {
-      HiGitPanel.createOrShow(context.extensionUri);
+      HiGitPanel.createOrShow(context.extensionUri, detailsProvider);
     })
   );
 }

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { getNonce } from '@utilities/getNonce.js';
 import { gitDataService } from '@services/GitDataService.js';
+import { HiGitDetailsProvider } from './HiGitDetailsProvider.js';
 
 /**
  * Manages the full-window webview panel showing the Git graph.
@@ -12,9 +13,10 @@ export class HiGitPanel {
 
   private readonly _panel: vscode.WebviewPanel;
   private readonly _extensionUri: vscode.Uri;
+  private readonly _detailsProvider?: HiGitDetailsProvider;
   private _disposables: vscode.Disposable[] = [];
 
-  public static createOrShow(extensionUri: vscode.Uri) {
+  public static createOrShow(extensionUri: vscode.Uri, detailsProvider?: HiGitDetailsProvider) {
     const column = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
       : undefined;
@@ -40,15 +42,27 @@ export class HiGitPanel {
       }
     );
 
-    HiGitPanel.currentPanel = new HiGitPanel(panel, extensionUri);
+    HiGitPanel.currentPanel = new HiGitPanel(panel, extensionUri, detailsProvider);
   }
 
-  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, detailsProvider?: HiGitDetailsProvider) {
     this._panel = panel;
     this._extensionUri = extensionUri;
+    this._detailsProvider = detailsProvider;
 
     // Set the webview's HTML content
     this._update();
+
+    // Forward commit selections to the details sidebar
+    this._panel.webview.onDidReceiveMessage(
+      (message) => {
+        if (message.type === 'commitSelected' && this._detailsProvider) {
+          this._detailsProvider.showCommit(message.commit, message.branch);
+        }
+      },
+      null,
+      this._disposables
+    );
 
     // Clean up when the panel is closed
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
@@ -132,6 +146,9 @@ export class HiGitPanel {
 
     <!-- Repo data from GitDataService (replaces static data.js) -->
     <script nonce="${nonce}">window.GITNEXUS_DATA = ${repoDataJson};</script>
+
+    <!-- VSCode API (must be acquired once before React components) -->
+    <script nonce="${nonce}">window.__vsApi = acquireVsCodeApi();</script>
 
     <!-- Graph layout utility -->
     <script nonce="${nonce}" src="${graphUri}"></script>
