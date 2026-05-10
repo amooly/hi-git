@@ -7,7 +7,7 @@ import { gitDataService } from '../services/GitDataService.js';
  * Sidebar webview provider for the Hi Git activity bar panel.
  * Shows a compact branch overview with a button to open the full graph.
  */
-export class HiGitSidebarProvider implements vscode.WebviewViewProvider {
+export class BranchProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'hi-git.sidebarView';
 
     private _view?: vscode.WebviewView;

@@ -51,9 +51,9 @@ hi-git/
 ├── src/
 │   ├── extension/                # Extension host TypeScript source
 │   │   ├── extension.ts          # Entry point — activate(), registers commands & views
-│   │   ├── panels/
-│   │   │   ├── HiGitPanel.ts     # Manages the full-screen graph WebviewPanel
-│   │   │   └── HiGitSidebarProvider.ts  # Manages the activity bar sidebar WebviewView
+│   │   ├── vs-ui/
+│   │   │   ├── GraphPanel.ts     # Manages the full-screen graph WebviewPanel
+│   │   │   └── BranchProvider.ts  # Manages the activity bar sidebar WebviewView
 │   │   └── utilities/
 │   │       └── getNonce.ts       # CSP nonce generator
 │   │
@@ -232,12 +232,12 @@ An in-prototype edit panel (activated via `postMessage` from the parent frame) t
 │   ├── Registers: 'hi-git.showGraph' command             │
 │   └── Registers: 'hi-git.sidebarView' webview view      │
 │                                                         │
-│   HiGitPanel.ts                                         │
+│   GraphPanel.ts                                         │
 │   ├── Creates WebviewPanel (retainContextWhenHidden)    │
 │   ├── Sets localResourceRoots: [frontend/, media/]      │
 │   └── Generates HTML with CSP nonce + webview URIs      │
 │                                                         │
-│   HiGitSidebarProvider.ts                               │
+│   BranchProvider.ts                               │
 │   ├── Implements WebviewViewProvider                    │
 │   └── Handles postMessage: 'showGraph' → executeCommand │
 └─────────────────────────────────────────────────────────┘

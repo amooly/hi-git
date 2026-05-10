@@ -14,7 +14,7 @@ function authorInitials(name) {
 }
 
 function GitNexusPanel({
-  data, theme, onToggleTheme, view, onToggleView,
+  data, theme, onToggleTheme,
   rowH, density, nodeStyle, showFilters, onToggleFilters,
 }) {
   const [filters, setFilters] = React.useState({ sha: '', msg: '', author: '', date: '' });
@@ -76,25 +76,11 @@ function GitNexusPanel({
     setContextMenu(null);
   };
 
-  if (view === 'network') {
-    return (
-      <div className="gx-panel">
-        <Header
-          theme={theme} onToggleTheme={onToggleTheme}
-          view={view} onToggleView={onToggleView}
-          onRefresh={onRefresh} refreshing={refreshing}
-          showFilters={showFilters} onToggleFilters={onToggleFilters}
-        />
-        {React.createElement(window.BranchRelationsView, { data })}
-      </div>
-    );
-  }
 
   return (
     <div className="gx-panel" style={{ '--graph-col-w': `${graphColW}px`, '--row-h': `${rowH}px` }}>
       <Header
         theme={theme} onToggleTheme={onToggleTheme}
-        view={view} onToggleView={onToggleView}
         onRefresh={onRefresh} refreshing={refreshing}
         showFilters={showFilters} onToggleFilters={onToggleFilters}
       />
@@ -239,7 +225,7 @@ function GitNexusPanel({
   );
 }
 
-function Header({ theme, onToggleTheme, view, onToggleView, onRefresh, refreshing,
+function Header({ theme, onToggleTheme, onRefresh, refreshing,
   showFilters, onToggleFilters }) {
   const [hoverRemote, setHoverRemote] = React.useState(false);
   return (
@@ -277,11 +263,7 @@ function Header({ theme, onToggleTheme, view, onToggleView, onRefresh, refreshin
           </span>
         </button>
         <div className="gx-header-divider" />
-        <button className={`gx-icon-btn ${view === 'network' ? 'toggle-on' : ''}`}
-          onClick={onToggleView}
-          title={view === 'network' ? 'Show commit history' : 'Show branch relations'}>
-          <span className="codicon">{view === 'network' ? 'list_alt' : 'account_tree'}</span>
-        </button>
+
       </div>
     </div>
   );

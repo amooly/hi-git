@@ -8,7 +8,7 @@
     "baseUrl": ".",
     "paths": {
       "@services/*": ["src/extension/services/*"],
-      "@panels/*": ["src/extension/panels/*"],
+      "@vs-ui/*": ["src/extension/vs-ui/*"],
       "@utilities/*": ["src/extension/utilities/*"],
       "@shared/*": ["src/shared/*"]
     },

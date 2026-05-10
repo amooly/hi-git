@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { getNonce } from '../utilities/getNonce.js';
 import type { CommitData, BranchData } from '@shared/types/git.js';
 
-export class HiGitDetailsProvider implements vscode.WebviewViewProvider {
+export class DetailProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'hi-git.detailsView';
 
     private _view?: vscode.WebviewView;

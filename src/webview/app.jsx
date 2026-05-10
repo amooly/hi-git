@@ -9,20 +9,51 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "showVscChrome": false
 }/*EDITMODE-END*/;
 
+const FALLBACK_DATA = {
+  COMMITS: [
+    { sha: '0000000', lane: 0, branch: 'main', parents: [], refs: [{type: 'branch', name: 'main', current: true}], msg: 'No data (VS Code API not found)', author: 'System', email: '', date: '', dateAbs: '' }
+  ],
+  BRANCHES: { 'main': { lane: 0, color: '#4FC1FF', label: 'main' } },
+  BRANCH_COLORS: { main: '#4FC1FF' },
+  BRANCH_RELATIONS: { trunk: 'main', branches: [{ name: 'main', lane: 0, color: '#4FC1FF', commits: 1, status: 'current', mergesInto: null, spawnedFrom: null, spawnAt: null }] }
+};
+
 // Resolved once at module load — window.GitNexusPanel is set before React mounts
 const Panel = window.GitNexusPanel;
 
 function App() {
   const [theme, setTheme] = React.useState(() => localStorage.getItem('gx-theme') || 'dark');
-  const [view, setView] = React.useState(() => localStorage.getItem('gx-view') || 'history');
+
   const [density, setDensity] = React.useState(TWEAK_DEFAULTS.density);
   const [nodeStyle, setNodeStyle] = React.useState(TWEAK_DEFAULTS.nodeStyle);
   const [showFilters, setShowFilters] = React.useState(TWEAK_DEFAULTS.showFilters);
   const [showVscChrome, setShowVscChrome] = React.useState(TWEAK_DEFAULTS.showVscChrome);
   const [editMode, setEditMode] = React.useState(false);
+  const [repoData, setRepoData] = React.useState(null);
+
+  React.useEffect(() => {
+    // Attempt to load from Extension Host, fallback to minimal error state
+    if (window.vscodeAPI && window.vscodeAPI.request) {
+      window.vscodeAPI.request('getRepoData')
+        .then(data => {
+          if (data) {
+             setRepoData(data);
+          } else {
+             // Fallback to minimal state if empty response
+             setRepoData(FALLBACK_DATA);
+          }
+        })
+        .catch(err => {
+          console.error('[Webview] Failed to load repo data', err);
+          setRepoData(FALLBACK_DATA);
+        });
+    } else {
+      setRepoData(FALLBACK_DATA);
+    }
+  }, []);
 
   React.useEffect(() => { document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('gx-theme', theme); }, [theme]);
-  React.useEffect(() => { localStorage.setItem('gx-view', view); }, [view]);
+
 
   // Tweaks protocol
   React.useEffect(() => {
@@ -41,14 +72,15 @@ function App() {
 
   const rowH = density === 'compact' ? 28 : density === 'cozy' ? 32 : 36;
 
+  if (!repoData) {
+    return <div style={{ padding: 20 }}>Loading repository data...</div>;
+  }
 
   const panel = (
     <Panel
-      data={window.GITNEXUS_DATA}
+      data={repoData}
       theme={theme}
       onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-      view={view}
-      onToggleView={() => setView(v => v === 'history' ? 'network' : 'history')}
       rowH={rowH}
       density={density}
       nodeStyle={nodeStyle}
@@ -91,14 +123,7 @@ function App() {
                 ))}
               </div>
             </div>
-            <div className="tweak-row">
-              <label>View</label>
-              <div className="tweak-segmented">
-                {['history', 'network'].map(v => (
-                  <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>{v}</button>
-                ))}
-              </div>
-            </div>
+
             <div className="tweak-row">
               <label>Filter bar</label>
               <div className="tweak-segmented">

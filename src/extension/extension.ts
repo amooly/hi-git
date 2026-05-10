@@ -1,29 +1,29 @@
 import * as vscode from 'vscode';
-import { HiGitPanel } from './panels/HiGitPanel.js';
-import { HiGitSidebarProvider } from './panels/HiGitSidebarProvider.js';
-import { HiGitDetailsProvider } from './panels/HiGitDetailsProvider.js';
+import { GraphPanel } from './vs-ui/GraphPanel.js';
+import { BranchProvider } from './vs-ui/BranchProvider.js';
+import { DetailProvider } from './vs-ui/DetailProvider.js';
 
 export function activate(context: vscode.ExtensionContext) {
 
-  const sidebarProvider = new HiGitSidebarProvider(context.extensionUri);
+  const sidebarProvider = new BranchProvider(context.extensionUri);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
-      HiGitSidebarProvider.viewType,
+      BranchProvider.viewType,
       sidebarProvider
     )
   );
 
-  const detailsProvider = new HiGitDetailsProvider(context.extensionUri);
+  const detailsProvider = new DetailProvider(context.extensionUri);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
-      HiGitDetailsProvider.viewType,
+      DetailProvider.viewType,
       detailsProvider
     )
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('hi-git.showGraph', () => {
-      HiGitPanel.createOrShow(context.extensionUri, detailsProvider);
+      GraphPanel.createOrShow(context.extensionUri, detailsProvider);
     })
   );
 }

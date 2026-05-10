@@ -1,35 +1,37 @@
 import * as vscode from 'vscode';
 import { getNonce } from '@utilities/getNonce.js';
 import { gitDataService } from '@services/GitDataService.js';
-import { HiGitDetailsProvider } from './HiGitDetailsProvider.js';
+import { DetailProvider } from './DetailProvider.js';
+import { MessageHandler } from '@utilities/MessageHandler.js';
 
 /**
  * Manages the full-window webview panel showing the Git graph.
  * Opened via the "Hi Git: Show Graph" command.
  */
-export class HiGitPanel {
-  public static currentPanel: HiGitPanel | undefined;
+export class GraphPanel {
+  public static currentPanel: GraphPanel | undefined;
   public static readonly viewType = 'hi-git.graphPanel';
 
   private readonly _panel: vscode.WebviewPanel;
   private readonly _extensionUri: vscode.Uri;
-  private readonly _detailsProvider?: HiGitDetailsProvider;
+  private readonly _detailsProvider?: DetailProvider;
   private _disposables: vscode.Disposable[] = [];
+  private _messageHandler: MessageHandler;
 
-  public static createOrShow(extensionUri: vscode.Uri, detailsProvider?: HiGitDetailsProvider) {
+  public static createOrShow(extensionUri: vscode.Uri, detailsProvider?: DetailProvider) {
     const column = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
       : undefined;
 
     // If a panel already exists, reveal it
-    if (HiGitPanel.currentPanel) {
-      HiGitPanel.currentPanel._panel.reveal(column);
+    if (GraphPanel.currentPanel) {
+      GraphPanel.currentPanel._panel.reveal(column);
       return;
     }
 
     // Create a new webview panel
     const panel = vscode.window.createWebviewPanel(
-      HiGitPanel.viewType,
+      GraphPanel.viewType,
       'Hi Git',
       column || vscode.ViewColumn.One,
       {
@@ -42,13 +44,19 @@ export class HiGitPanel {
       }
     );
 
-    HiGitPanel.currentPanel = new HiGitPanel(panel, extensionUri, detailsProvider);
+    GraphPanel.currentPanel = new GraphPanel(panel, extensionUri, detailsProvider);
   }
 
-  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, detailsProvider?: HiGitDetailsProvider) {
+  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, detailsProvider?: DetailProvider) {
     this._panel = panel;
     this._extensionUri = extensionUri;
     this._detailsProvider = detailsProvider;
+    
+    this._messageHandler = new MessageHandler(this._panel.webview, this._disposables);
+    
+    this._messageHandler.registerHandler('getRepoData', async () => {
+      return gitDataService.getRepoData();
+    });
 
     // Set the webview's HTML content
     this._update();
@@ -80,7 +88,7 @@ export class HiGitPanel {
   }
 
   public dispose() {
-    HiGitPanel.currentPanel = undefined;
+    GraphPanel.currentPanel = undefined;
     this._panel.dispose();
     while (this._disposables.length) {
       const d = this._disposables.pop();
@@ -121,9 +129,6 @@ export class HiGitPanel {
     );
 
     const nonce = getNonce();
-    // Escape </script> sequences so the inlined JSON cannot break the script tag
-    const repoDataJson = JSON.stringify(gitDataService.getRepoData())
-      .replace(/<\/script>/gi, '<\\/script>');
 
     return /* html */ `<!DOCTYPE html>
 <html lang="en" data-theme="dark">
@@ -146,9 +151,6 @@ export class HiGitPanel {
     <!-- React runtime (UMD — exposes window.React, window.ReactDOM) -->
     <script nonce="${nonce}" src="${reactUri}"></script>
     <script nonce="${nonce}" src="${reactDomUri}"></script>
-
-    <!-- Repo data from GitDataService (replaces static data.js) -->
-    <script nonce="${nonce}">window.GITNEXUS_DATA = ${repoDataJson};</script>
 
     <!-- VSCode API Wrapper (exposes window.vscodeAPI) -->
     <script nonce="${nonce}" src="${vscodeApiUri}"></script>

@@ -30,28 +30,24 @@ hi-git/
 ├── src/
 │   ├── shared/                   # Shared code across boundaries
 │   │   └── types/                # Shared interfaces (no runtime code)
-│   │       ├── git.ts            # CommitData, BranchData, RepoData, …
-│   │       ├── messages.ts       # WebviewRequest, WebviewResponse
-│   │       └── ui.ts             # BranchSummaryEntry, TagSummaryEntry
+│   │       └── ...               # BranchSummaryEntry, TagSummaryEntry
+│   │
 │   ├── extension/                # Extension host TypeScript source
 │   │   ├── extension.ts          # Entry point — activate(), wires services to panels
-│   │   ├── utilities/            # Stateless helper functions (no external I/O)
-│   │   │   ├── getNonce.ts       # CSP nonce generator
-│   │   │   └── SidebarRenderer.ts # HTML fragment builders for branch/tag lists
-│   │   ├── components/           # (planned) Adapters that invoke external providers
-│   │   │   └── ...               # e.g. GitProvider, FileSystemProvider, HttpProvider
-│   │   ├── services/             # Business logic — composes components and types
-│   │   │   └── GitDataService.ts # Owns repo data; exposes getRepoData(), getBranchSummary(), getTagSummary()
-│   │   └── panels/               # VS Code API surface — composes services and utilities into webview HTML
-│   │       ├── HiGitPanel.ts     # Full-screen graph WebviewPanel
-│   │       └── HiGitSidebarProvider.ts # Activity bar sidebar WebviewView
+│   │   ├── vs-ui/               # VS Code API surface
+│   │   │   ├── GraphPanel.ts     # Full-screen graph WebviewPanel
+│   │   │   └── BranchProvider.ts # Activity bar sidebar WebviewView
+│   │   ├── services/             # Business logic
+│   │   │   └── ... 
+│   │   ├── components/           # Encapsulates reusable logic
+│   │   │   └── ...               
+│   │   └── utilities/            # Stateless helper functions (no external I/O)
+│   │       └── ...
 │   │
 │   └── webview/                  # Webview React source (authored as JSX, excluded from tsc)
-│       ├── GitNexus.html         # Standalone dev harness (CDN React + data.js, browser only)
+│       ├── GitNexus.html         # Standalone dev harness (CDN React + browser only)
 │       ├── app.jsx               # Root React component — mounts to #root
 │       ├── panel.jsx             # Commits table, header, filter bar, detail panel
-│       ├── network.jsx           # Branch Relations SVG view
-│       ├── data.js               # Static sample data for dev harness only (not loaded by extension)
 │       ├── graph.js              # SVG graph edge computation (Bezier curves, lane layout)
 │       └── styles.css            # All component styles + VS Code theme tokens
 │
@@ -62,7 +58,7 @@ hi-git/
 │
 ├── out/                          # GENERATED — compiled extension host
 ├── docs/                         # Project documentation
-│   ├── architecture.md           # Source of truth for structure, layers, and dependency rules
+│   ├── architecture.md           # Project architecture, layers, and dependency rules
 │   ├── coding_conventions.md     # Code style and gotchas
 │   └── features/                 # Feature-level docs: data flows, behaviors, APIs
 ├── esbuild.js                    # Build script
@@ -77,8 +73,8 @@ hi-git/
 Within the extension host, dependencies flow in one direction only — no layer may import from a layer above it:
 
 ```
-panels/      →  services/   →  types/
-panels/      →  utilities/  →  types/
+vs-ui/      →  services/   →  types/
+vs-ui/      →  utilities/  →  types/
 components/  →  (external providers: git CLI, file system, HTTP)
 services/    →  components/
 ```
@@ -87,7 +83,7 @@ services/    →  components/
 - `utilities/` — may only import from `types/`
 - `components/` — adapters for external I/O; may import from `types/` and `utilities/`
 - `services/` — business logic; may import from `components/`, `utilities/`, and `types/`
-- `panels/` — VS Code API surface; may import from `services/` and `utilities/`
+- `vs-ui/` — VS Code API surface; may import from `services/` and `utilities/`
 
 Extension host and webview are fully isolated at runtime — they do not share utility functions. Communication is via `postMessage` only. However, both layers may use `import type` to consume interfaces from `src/shared/types/`.
 
@@ -98,14 +94,14 @@ The webview has no bundler at runtime. Scripts are loaded in dependency order, e
 ```
 1. react.production.min.js      → window.React
 2. react-dom.production.min.js  → window.ReactDOM
-3. (inline script)              → window.GITNEXUS_DATA  ← serialized from GitDataService by HiGitPanel
+3. (inline script)              → window.GITNEXUS_DATA  ← serialized from GitDataService by GraphPanel
 4. graph.js                     → window.GitGraph
 5. network.js                   → window.BranchRelationsView
 6. panel.js                     → window.GitNexusPanel
 7. app.js                       → mounts <App /> to #root
 ```
 
-New webview modules must be exposed as `window.X` globals and added to the script load order in `HiGitPanel._getWebviewContent()`.
+New webview modules must be exposed as `window.X` globals and added to the script load order in `GraphPanel._getWebviewContent()`.
 
 ## Content Security Policy
 

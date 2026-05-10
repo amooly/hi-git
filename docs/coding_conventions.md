@@ -43,7 +43,7 @@ export const myService = new MyService();
 Consumers import the instance directly — they do not receive it via constructor injection:
 
 ```ts
-// src/panels/MyPanel.ts
+// src/extension/vs-ui/MyPanel.ts
 import { myService } from '@services/MyService.js';
 
 // use myService.getData() directly — do not accept it as a parameter
@@ -66,7 +66,7 @@ Always use path aliases instead of relative paths for imports across `src/` dire
 | Alias | Resolves to |
 |---|---|
 | `@services/*` | `src/extension/services/*` |
-| `@panels/*` | `src/extension/panels/*` |
+| `@vs-ui/*` | `src/extension/vs-ui/*` |
 | `@utilities/*` | `src/extension/utilities/*` |
 | `@shared/*` | `src/shared/*` |
 

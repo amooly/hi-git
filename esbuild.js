@@ -39,7 +39,7 @@ const extensionConfig = {
   minify: false,
   alias: {
     '@services': path.resolve(__dirname, 'src/extension/services'),
-    '@panels': path.resolve(__dirname, 'src/extension/panels'),
+    '@vs-ui': path.resolve(__dirname, 'src/extension/vs-ui'),
     '@utilities': path.resolve(__dirname, 'src/extension/utilities'),
     '@shared': path.resolve(__dirname, 'src/shared'),
   },
@@ -47,7 +47,7 @@ const extensionConfig = {
 };
 
 // ---------- Target 2: Webview JSX transpilation ----------
-const jsxFiles = ['src/webview/app.jsx', 'src/webview/panel.jsx', 'src/webview/network.jsx', 'src/webview/vscodeApi.ts'];
+const jsxFiles = ['src/webview/app.jsx', 'src/webview/panel.jsx', 'src/webview/vscodeApi.ts'];
 
 const webviewConfig = {
   entryPoints: jsxFiles,
