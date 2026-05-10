@@ -1,5 +1,7 @@
 /* GitNexus — VSCode shell + app entry */
 
+import { GraphPanel } from './components/GraphPanel.jsx';
+
 /* hooks: use React.useX directly to avoid cross-file collisions */
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
@@ -18,8 +20,7 @@ const FALLBACK_DATA = {
   BRANCH_RELATIONS: { trunk: 'main', branches: [{ name: 'main', lane: 0, color: '#4FC1FF', commits: 1, status: 'current', mergesInto: null, spawnedFrom: null, spawnAt: null }] }
 };
 
-// Resolved once at module load — window.GitNexusPanel is set before React mounts
-const Panel = window.GitNexusPanel;
+
 
 function App() {
   const [theme, setTheme] = React.useState(() => localStorage.getItem('gx-theme') || 'dark');
@@ -77,7 +78,7 @@ function App() {
   }
 
   const panel = (
-    <Panel
+    <GraphPanel
       data={repoData}
       theme={theme}
       onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}

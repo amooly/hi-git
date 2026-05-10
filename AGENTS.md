@@ -10,7 +10,7 @@
 Key constraints for AI agents:
 - Edit only `src/extension/` (extension host) and `src/webview/` (webview UI). Never edit `media/vendor/`, `media/webview/`, or `out/` — these are generated.
 - Extension host ↔ webview communication is via `postMessage` only. Shared TypeScript types/interfaces are allowed via `import type`, but shared runtime utilities are strictly prohibited.
-- The webview has no bundler at runtime. New modules must be exposed as `window.X` globals and added to the script load order in the HTML template.
+- The webview source uses **ES Modules**. New React components go in `src/webview/components/`. Static data/constants go in `src/webview/constants/`. Pure helper functions go in `src/webview/utils/`. The entire webview is bundled by esbuild into `media/webview/panel-bundle.js` — do not add new `<script>` tags for individual component files.
 - `src/extension/utilities/` is for stateless helper functions with no external I/O. `src/extension/components/` is for adapters that invoke external providers (git, file system, HTTP). Do not place I/O-capable code in `utilities/`, and do not place pure functions in `components/`.
 
 ## Documentation

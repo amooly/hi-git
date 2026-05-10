@@ -4,9 +4,9 @@
 
 ## Naming
 
-- React component files use `.jsx` extension (in `src/webview/`).
-- Extension host files use `.ts` extension (in `src/`).
-- Generated output files mirror their source name (e.g., `panel.jsx` → `media/webview/panel.js`).
+- React component files use `.jsx` extension (in `src/webview/components/` or `src/webview/`).
+- Extension host files use `.ts` extension (in `src/extension/`).
+- The entire webview compiles to a single file: `src/webview/app.jsx` → `media/webview/panel-bundle.js`.
 
 ## Formatting
 
@@ -23,7 +23,7 @@ The extension host (`src/extension/`) and webview UI (`src/webview/`) run in sep
 - **Utility Sharing Prohibited**: Do not share runtime utilities. The webview runs in the browser and the host in Node.js.
 - **Request-Response**: When the webview needs data from the host, use the `requestId` pattern. Generate a unique `requestId` with the outgoing message, and the host must include the exact same `requestId` in its response to resolve the pending Promise.
 
-- All webview modules expose themselves as globals on `window` (e.g., `window.GitGraph`, `window.GitNexusPanel`) — there is no bundler in the webview runtime.
+- All webview modules use ES module `export`/`import` syntax. esbuild bundles the full module graph into `media/webview/panel-bundle.js` — do not expose components via `window.X` globals.
 - Design tokens and VS Code semantic tokens are defined per-theme in `src/webview/styles.css`.
 - Theme and view preferences are persisted to `localStorage` in the webview.
 
@@ -101,7 +101,7 @@ The `.jsx` files in `src/webview/` are pre-transpiled by esbuild. After editing 
 
 ### `src/webview/GitNexus.html` uses CDN React
 
-The standalone HTML harness uses CDN React + Babel for rapid browser iteration only. The actual extension loads everything locally to satisfy the webview CSP.
+The standalone HTML harness uses CDN React + Babel for rapid browser iteration only. The actual extension loads everything locally via `panel-bundle.js` (which includes React) to satisfy the webview CSP.
 
 ### `localStorage` in webviews
 

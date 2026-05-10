@@ -74,4 +74,4 @@ function buildEdges(commits, rowH, branches) {
   return { edges, graphWidth, maxLane };
 }
 
-window.GitGraph = { buildEdges, laneX, LANE_W, LANE_X0, ROW_H_DEFAULT };
+export { buildEdges, laneX, LANE_W, LANE_X0, ROW_H_DEFAULT };

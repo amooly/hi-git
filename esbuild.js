@@ -46,68 +46,57 @@ const extensionConfig = {
   plugins: [watchPlugin],
 };
 
-// ---------- Target 2: Webview JSX transpilation ----------
-const jsxFiles = ['src/webview/app.jsx', 'src/webview/panel.jsx', 'src/webview/vscodeApi.ts'];
+// ---------- Target 2a: VSCode API wrapper (no bundling — exposes window.vscodeAPI) ----------
+const vscodeApiConfig = {
+  entryPoints: ['src/webview/vscodeApi.ts'],
+  outfile: 'media/webview/vscodeApi.js',
+  bundle: false,
+  format: 'iife',
+  sourcemap: true,
+  minify: false,
+  plugins: [watchPlugin],
+};
 
-const webviewConfig = {
-  entryPoints: jsxFiles,
-  outdir: 'media/webview',
-  bundle: false,       // No bundling — just JSX transform
+// ---------- Target 2b: Webview React bundle ----------
+// React and ReactDOM are bundled directly into the output via the inject shim.
+// No UMD script tags needed — everything is self-contained in panel-bundle.js.
+const panelBundleConfig = {
+  entryPoints: ['src/webview/app.jsx'],
+  outfile: 'media/webview/panel-bundle.js',
+  bundle: true,
   format: 'iife',
   jsx: 'transform',
   jsxFactory: 'React.createElement',
   jsxFragment: 'React.Fragment',
   sourcemap: true,
   minify: false,
+  // Inject the React shim so components can reference React/ReactDOM as globals
+  // without needing an explicit import statement in every file.
+  inject: ['./src/webview/react-shim.js'],
+  define: {
+    'process.env.NODE_ENV': '"production"',
+  },
   plugins: [watchPlugin],
 };
-
-// ---------- Copy React UMD vendor files ----------
-function copyVendorFiles() {
-  const vendorDir = path.join(__dirname, 'media', 'vendor');
-  fs.mkdirSync(vendorDir, { recursive: true });
-
-  const filesToCopy = [
-    {
-      src: path.join(__dirname, 'node_modules', 'react', 'umd', 'react.production.min.js'),
-      dest: path.join(vendorDir, 'react.production.min.js'),
-    },
-    {
-      src: path.join(__dirname, 'node_modules', 'react-dom', 'umd', 'react-dom.production.min.js'),
-      dest: path.join(vendorDir, 'react-dom.production.min.js'),
-    },
-  ];
-
-  for (const { src, dest } of filesToCopy) {
-    if (fs.existsSync(src)) {
-      fs.copyFileSync(src, dest);
-      console.log(`  ✓ Copied ${path.basename(src)}`);
-    } else {
-      console.warn(`  ⚠ Missing: ${src}`);
-    }
-  }
-}
 
 // ---------- Build ----------
 async function build() {
   console.log('🔨 Building Hi Git extension...\n');
 
-  // Copy vendor files
-  console.log('📦 Copying React vendor files...');
-  copyVendorFiles();
-  console.log('');
-
   if (isWatch) {
     console.log('👀 Watch mode — rebuilding on change...\n');
 
-    const extCtx = await esbuild.context(extensionConfig);
-    const webCtx = await esbuild.context(webviewConfig);
+    const extCtx        = await esbuild.context(extensionConfig);
+    const apiCtx        = await esbuild.context(vscodeApiConfig);
+    const bundleCtx     = await esbuild.context(panelBundleConfig);
 
     await extCtx.watch();
-    await webCtx.watch();
+    await apiCtx.watch();
+    await bundleCtx.watch();
 
     console.log('  Extension host: watching src/extension/**/*.ts');
-    console.log('  Webview JSX:    watching src/webview/**/*.jsx');
+    console.log('  Webview API:    watching src/webview/vscodeApi.ts');
+    console.log('  Webview bundle: watching src/webview/**/*.jsx');
     console.log('');
   } else {
     // One-shot build
@@ -115,13 +104,15 @@ async function build() {
     await esbuild.build(extensionConfig);
     console.log('  ✓ out/extension.js\n');
 
-    console.log('⚡ Transpiling webview JSX...');
-    await esbuild.build(webviewConfig);
-    jsxFiles.forEach(f => {
-      const base = path.basename(f, '.jsx');
-      console.log(`  ✓ media/webview/${base}.js`);
-    });
-    console.log('\n✅ Build complete.');
+    console.log('⚡ Transpiling VSCode API wrapper...');
+    await esbuild.build(vscodeApiConfig);
+    console.log('  ✓ media/webview/vscodeApi.js\n');
+
+    console.log('⚡ Bundling webview React components...');
+    await esbuild.build(panelBundleConfig);
+    console.log('  ✓ media/webview/panel-bundle.js\n');
+
+    console.log('✅ Build complete.');
   }
 }
 

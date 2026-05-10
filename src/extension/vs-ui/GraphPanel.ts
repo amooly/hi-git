@@ -51,9 +51,9 @@ export class GraphPanel {
     this._panel = panel;
     this._extensionUri = extensionUri;
     this._detailsProvider = detailsProvider;
-    
+
     this._messageHandler = new MessageHandler(this._panel.webview, this._disposables);
-    
+
     this._messageHandler.registerHandler('getRepoData', async () => {
       return gitDataService.getRepoData();
     });
@@ -106,26 +106,11 @@ export class GraphPanel {
     const stylesUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'styles.css')
     );
-    const reactUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'vendor', 'react.production.min.js')
-    );
-    const reactDomUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'vendor', 'react-dom.production.min.js')
-    );
-    const graphUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'graph.js')
-    );
     const vscodeApiUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'media', 'webview', 'vscodeApi.js')
     );
-    const networkUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'webview', 'network.js')
-    );
-    const panelUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'webview', 'panel.js')
-    );
-    const appUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'webview', 'app.js')
+    const panelBundleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'webview', 'panel-bundle.js')
     );
 
     const nonce = getNonce();
@@ -148,20 +133,11 @@ export class GraphPanel {
 <body>
     <div id="root"></div>
 
-    <!-- React runtime (UMD — exposes window.React, window.ReactDOM) -->
-    <script nonce="${nonce}" src="${reactUri}"></script>
-    <script nonce="${nonce}" src="${reactDomUri}"></script>
-
     <!-- VSCode API Wrapper (exposes window.vscodeAPI) -->
     <script nonce="${nonce}" src="${vscodeApiUri}"></script>
 
-    <!-- Graph layout utility -->
-    <script nonce="${nonce}" src="${graphUri}"></script>
-
-    <!-- React components (transpiled from JSX) -->
-    <script nonce="${nonce}" src="${networkUri}"></script>
-    <script nonce="${nonce}" src="${panelUri}"></script>
-    <script nonce="${nonce}" src="${appUri}"></script>
+    <!-- React components (bundled from JSX) -->
+    <script nonce="${nonce}" src="${panelBundleUri}"></script>
 </body>
 </html>`;
   }
