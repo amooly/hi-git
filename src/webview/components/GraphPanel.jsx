@@ -105,6 +105,11 @@ export function GraphPanel({
     setContextMenu(null);
   };
 
+  const onCompareWithPrev = (sha) => {
+    window.vscodeAPI.postEvent('compareWithPrev', { sha });
+    setContextMenu(null);
+  };
+
   return (
     <div className="gx-panel" style={{ '--graph-col-w': `${graphColW}px`, '--row-h': `${rowH}px` }}>
       <Header
@@ -127,7 +132,7 @@ export function GraphPanel({
         setColFilters={setColFilters}
       />
 
-      {contextMenu && <ContextMenu menu={contextMenu} onCopySha={onCopySha} />}
+      {contextMenu && <ContextMenu menu={contextMenu} onCopySha={onCopySha} onCompareWithPrev={onCompareWithPrev} />}
     </div>
   );
 }

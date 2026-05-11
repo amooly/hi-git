@@ -46,3 +46,18 @@ export interface RepoData {
   BRANCH_COLORS: Record<string, string>;
   BRANCH_RELATIONS: BranchRelations;
 }
+
+export interface CompareFileData {
+  status: 'added' | 'modified' | 'deleted' | 'renamed';
+  path: string;
+  oldPath?: string;
+  insertions: number;
+  deletions: number;
+}
+
+export interface CommitCompareData {
+  sha: string;
+  parentSha: string | null;
+  message: string;
+  files: CompareFileData[];
+}

@@ -41,6 +41,11 @@
           "type": "webview",
           "id": "hi-git.detailsView",
           "name": "Details"
+        },
+        {
+          "type": "tree",
+          "id": "hi-git.compareView",
+          "name": "Compare"
         }
       ]
     }

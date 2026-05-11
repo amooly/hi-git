@@ -5,6 +5,8 @@ export type {
   BranchRelationEntry,
   BranchRelations,
   RepoData,
+  CompareFileData,
+  CommitCompareData,
 } from './git.js';
 
 export type {

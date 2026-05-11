@@ -1,4 +1,4 @@
-import type { RepoData, BranchSummaryEntry, TagSummaryEntry } from '@shared/types/index.js';
+import type { RepoData, BranchSummaryEntry, TagSummaryEntry, CompareFileData, CommitCompareData } from '@shared/types/index.js';
 
 const BRANCH_COLORS: Record<string, string> = {
   main: '#4FC1FF',
@@ -236,6 +236,37 @@ class GitDataService {
       }
     }
     return tags;
+  }
+
+  getCommitDiff(sha: string): CommitCompareData {
+    const commit = COMMITS.find(c => c.sha === sha);
+    const parentSha = commit?.parents[0] ?? null;
+    const message = commit?.msg.split('\n')[0] ?? sha;
+
+    const MOCK_FILE_SETS: Record<string, CompareFileData[]> = {
+      default: [
+        { status: 'modified', path: 'src/extension/services/GitDataService.ts', insertions: 12, deletions: 4 },
+        { status: 'modified', path: 'src/webview/components/CommitTable.jsx',   insertions: 8,  deletions: 2 },
+        { status: 'added',    path: 'src/shared/types/compare.ts',              insertions: 24, deletions: 0 },
+        { status: 'deleted',  path: 'src/webview/utils/oldHelper.js',           insertions: 0,  deletions: 15 },
+      ],
+      alt1: [
+        { status: 'modified', path: 'src/extension/vs-ui/GraphPanel.ts',        insertions: 34, deletions: 11 },
+        { status: 'added',    path: 'src/extension/vs-ui/CompareProvider.ts',   insertions: 80, deletions: 0 },
+        { status: 'modified', path: 'package.json',                             insertions: 6,  deletions: 0 },
+      ],
+      alt2: [
+        { status: 'modified', path: 'src/webview/styles.css',                   insertions: 22, deletions: 5 },
+        { status: 'modified', path: 'src/webview/components/ContextMenu.jsx',   insertions: 9,  deletions: 3 },
+        { status: 'renamed',  path: 'src/webview/constants/contextMenuItems.js', oldPath: 'src/webview/constants/menuItems.js', insertions: 0, deletions: 0 },
+      ],
+    };
+
+    const keys = Object.keys(MOCK_FILE_SETS);
+    const idx = sha.charCodeAt(0) % keys.length;
+    const files = MOCK_FILE_SETS[keys[idx]] ?? MOCK_FILE_SETS.default;
+
+    return { sha, parentSha, message, files };
   }
 
   private _currentBranch(): string {

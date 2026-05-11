@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { getNonce } from '@utilities/getNonce.js';
 import { gitDataService } from '@services/GitDataService.js';
 import { DetailProvider } from './DetailProvider.js';
+import { CompareProvider } from './CompareProvider.js';
 import { MessageHandler } from '@utilities/MessageHandler.js';
 
 /**
@@ -15,10 +16,11 @@ export class GraphPanel {
   private readonly _panel: vscode.WebviewPanel;
   private readonly _extensionUri: vscode.Uri;
   private readonly _detailsProvider?: DetailProvider;
+  private readonly _compareProvider?: CompareProvider;
   private _disposables: vscode.Disposable[] = [];
   private _messageHandler: MessageHandler;
 
-  public static createOrShow(extensionUri: vscode.Uri, detailsProvider?: DetailProvider) {
+  public static createOrShow(extensionUri: vscode.Uri, detailsProvider?: DetailProvider, compareProvider?: CompareProvider) {
     const column = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
       : undefined;
@@ -44,13 +46,14 @@ export class GraphPanel {
       }
     );
 
-    GraphPanel.currentPanel = new GraphPanel(panel, extensionUri, detailsProvider);
+    GraphPanel.currentPanel = new GraphPanel(panel, extensionUri, detailsProvider, compareProvider);
   }
 
-  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, detailsProvider?: DetailProvider) {
+  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, detailsProvider?: DetailProvider, compareProvider?: CompareProvider) {
     this._panel = panel;
     this._extensionUri = extensionUri;
     this._detailsProvider = detailsProvider;
+    this._compareProvider = compareProvider;
 
     this._messageHandler = new MessageHandler(this._panel.webview, this._disposables);
 
@@ -61,11 +64,19 @@ export class GraphPanel {
     // Set the webview's HTML content
     this._update();
 
-    // Forward commit selections to the details sidebar
+    // Forward commit selections and compare requests to sidebar providers
     this._panel.webview.onDidReceiveMessage(
       (message) => {
         if (message.type === 'commitSelected' && this._detailsProvider) {
           this._detailsProvider.showCommit(message.payload?.commit, message.payload?.branch);
+        }
+        if (message.type === 'compareWithPrev' && this._compareProvider) {
+          const { sha } = message.payload ?? {};
+          if (sha) {
+            const diff = gitDataService.getCommitDiff(sha);
+            this._compareProvider.showDiff(diff.sha, diff.parentSha, diff.message, diff.files);
+            vscode.commands.executeCommand(`${CompareProvider.viewType}.focus`);
+          }
         }
       },
       null,
