@@ -7,13 +7,12 @@ import { GraphPanel } from './components/GraphPanel.jsx';
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "density": "comfortable",
   "nodeStyle": "dot",
-  "showFilters": true,
   "showVscChrome": false
 }/*EDITMODE-END*/;
 
 const FALLBACK_DATA = {
   COMMITS: [
-    { sha: '0000000', lane: 0, branch: 'main', parents: [], refs: [{type: 'branch', name: 'main', current: true}], msg: 'No data (VS Code API not found)', author: 'System', email: '', date: '', dateAbs: '' }
+    { sha: '0000000', lane: 0, branch: 'main', parents: [], refs: [{ type: 'branch', name: 'main', current: true }], msg: 'No data (VS Code API not found)', author: 'System', email: '', date: '', dateAbs: '' }
   ],
   BRANCHES: { 'main': { lane: 0, color: '#4FC1FF', label: 'main' } },
   BRANCH_COLORS: { main: '#4FC1FF' },
@@ -27,7 +26,6 @@ function App() {
 
   const [density, setDensity] = React.useState(TWEAK_DEFAULTS.density);
   const [nodeStyle, setNodeStyle] = React.useState(TWEAK_DEFAULTS.nodeStyle);
-  const [showFilters, setShowFilters] = React.useState(TWEAK_DEFAULTS.showFilters);
   const [showVscChrome, setShowVscChrome] = React.useState(TWEAK_DEFAULTS.showVscChrome);
   const [editMode, setEditMode] = React.useState(false);
   const [repoData, setRepoData] = React.useState(null);
@@ -38,10 +36,10 @@ function App() {
       window.vscodeAPI.request('getRepoData')
         .then(data => {
           if (data) {
-             setRepoData(data);
+            setRepoData(data);
           } else {
-             // Fallback to minimal state if empty response
-             setRepoData(FALLBACK_DATA);
+            // Fallback to minimal state if empty response
+            setRepoData(FALLBACK_DATA);
           }
         })
         .catch(err => {
@@ -85,8 +83,6 @@ function App() {
       rowH={rowH}
       density={density}
       nodeStyle={nodeStyle}
-      showFilters={showFilters}
-      onToggleFilters={() => setShowFilters(s => !s)}
     />
   );
 
@@ -125,15 +121,6 @@ function App() {
               </div>
             </div>
 
-            <div className="tweak-row">
-              <label>Filter bar</label>
-              <div className="tweak-segmented">
-                <button className={showFilters ? 'active' : ''}
-                  onClick={() => { setShowFilters(true); persist({ showFilters: true }); }}>shown</button>
-                <button className={!showFilters ? 'active' : ''}
-                  onClick={() => { setShowFilters(false); persist({ showFilters: false }); }}>collapsed</button>
-              </div>
-            </div>
             <div className="tweak-row">
               <label>VSCode chrome</label>
               <div className="tweak-segmented">

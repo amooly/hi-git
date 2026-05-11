@@ -1,40 +1,76 @@
 /* GraphPanel — root panel component for the commit graph view.
- * Manages shared state and composes Header, FilterBar, CommitTable, and ContextMenu.
+ * Manages shared state and composes Header, CommitTable, and ContextMenu.
  */
 
 import { Header }      from './Header.jsx';
-import { FilterBar }   from './FilterBar.jsx';
 import { CommitTable } from './CommitTable.jsx';
 import { ContextMenu } from './ContextMenu.jsx';
 import { buildEdges }  from '../graph.js';
 
+/** Build the initial colFilters structure from commit data. */
+function buildColFilters(commits) {
+  // GRAPH: unique branch names from refs
+  const graphItems = [...new Set(
+    commits.flatMap(c => c.refs.map(r => r.name))
+  )].sort();
+
+  // SHA: short SHAs (first 7 chars, should already be 7 in data)
+  const shaItems = commits.map(c => c.sha);
+
+  // AUTHOR: unique author names
+  const authorItems = [...new Set(commits.map(c => c.author))].sort();
+
+  return {
+    graph:  { all: graphItems,  selected: new Set() },
+    sha:    { all: shaItems,    selected: new Set() },
+    author: { all: authorItems, selected: new Set() },
+  };
+}
+
 export function GraphPanel({
   data, theme, onToggleTheme,
-  rowH, density, nodeStyle, showFilters, onToggleFilters,
+  rowH, density, nodeStyle,
 }) {
-  const [filters, setFilters]       = React.useState({ sha: '', msg: '', author: '', date: '' });
+  const [colFilters, setColFilters]   = React.useState(() => buildColFilters(data.COMMITS));
   const [selectedSha, setSelectedSha] = React.useState(data.COMMITS[0].sha);
   const [contextMenu, setContextMenu] = React.useState(null); // {x, y, sha}
   const [refreshing, setRefreshing]   = React.useState(false);
 
-  // Filtering — keep DOM nodes alive so rows can animate out.
+  // Column-filter-based exclusion — a commit is filtered out if ANY active column
+  // filter excludes it.
   const filteredOut = React.useMemo(() => {
     const out = new Set();
+    const { graph, sha, author } = colFilters;
+
+    // A column is active if at least one item is selected.
+    // If active, it excludes anything NOT in the selection.
+    const graphActive  = graph.selected.size > 0;
+    const shaActive    = sha.selected.size > 0;
+    const authorActive = author.selected.size > 0;
+
     data.COMMITS.forEach(c => {
-      if (filters.sha && !c.sha.toLowerCase().includes(filters.sha.toLowerCase())) out.add(c.sha);
-      else if (filters.msg && !c.msg.toLowerCase().includes(filters.msg.toLowerCase()) &&
-        !c.refs.some(r => r.name.toLowerCase().includes(filters.msg.toLowerCase()))) out.add(c.sha);
-      else if (filters.author && !c.author.toLowerCase().includes(filters.author.toLowerCase())) out.add(c.sha);
-      else if (filters.date && !c.date.toLowerCase().includes(filters.date.toLowerCase()) &&
-        !c.dateAbs.toLowerCase().includes(filters.date.toLowerCase())) out.add(c.sha);
+      if (shaActive && !sha.selected.has(c.sha)) {
+        out.add(c.sha); return;
+      }
+      if (authorActive && !author.selected.has(c.author)) {
+        out.add(c.sha); return;
+      }
+      if (graphActive) {
+        // Commit passes the graph filter if it has no refs (keep it visible for graph continuity)
+        // or if at least one of its refs is selected.
+        const hasMatchingRef = c.refs.some(r => graph.selected.has(r.name));
+        if (c.refs.length > 0 && !hasMatchingRef) {
+          out.add(c.sha);
+        }
+      }
     });
     return out;
-  }, [filters, data.COMMITS]);
+  }, [colFilters, data.COMMITS]);
 
   // Build SVG edges
-  const { edges, graphWidth } = React.useMemo(
-    () => buildEdges(data.COMMITS, rowH, data.BRANCHES),
-    [data.COMMITS, rowH, data.BRANCHES]
+  const { edges, graphWidth, totalHeight, yPositions } = React.useMemo(
+    () => buildEdges(data.COMMITS, rowH, data.BRANCHES, filteredOut),
+    [data.COMMITS, rowH, data.BRANCHES, filteredOut]
   );
   const graphColW = Math.max(graphWidth + 180, 260); // graph + branch label space
 
@@ -74,21 +110,21 @@ export function GraphPanel({
       <Header
         theme={theme} onToggleTheme={onToggleTheme}
         onRefresh={onRefresh} refreshing={refreshing}
-        showFilters={showFilters} onToggleFilters={onToggleFilters}
       />
-
-      <FilterBar showFilters={showFilters} filters={filters} setFilters={setFilters} />
 
       <CommitTable
         data={data}
-        rowH={rowH}
         nodeStyle={nodeStyle}
         edges={edges}
         graphWidth={graphWidth}
+        totalHeight={totalHeight}
+        yPositions={yPositions}
         selectedSha={selectedSha}
         setSelectedSha={setSelectedSha}
         filteredOut={filteredOut}
         onRowContext={onRowContext}
+        colFilters={colFilters}
+        setColFilters={setColFilters}
       />
 
       {contextMenu && <ContextMenu menu={contextMenu} onCopySha={onCopySha} />}

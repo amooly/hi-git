@@ -1,7 +1,6 @@
 /* Header toolbar — theme toggle, refresh, filter toggle, remote link. */
 
-export function Header({ theme, onToggleTheme, onRefresh, refreshing,
-  showFilters, onToggleFilters }) {
+export function Header({ theme, onToggleTheme, onRefresh, refreshing }) {
   const [hoverRemote, setHoverRemote] = React.useState(false);
   return (
     <div className="gx-header">
@@ -13,15 +12,9 @@ export function Header({ theme, onToggleTheme, onRefresh, refreshing,
           </svg>
         </span>
         <span className="gx-user">Developer</span>
-        <span className="gx-repo">gitnexus / vscode-extension</span>
       </div>
       <div className="gx-header-spacer" />
       <div className="gx-header-right">
-        <button className="gx-icon-btn" onClick={onToggleFilters}
-          title="Toggle filters" aria-pressed={showFilters}>
-          <span className="codicon">filter_alt</span>
-        </button>
-        <div className="gx-header-divider" />
         <button className={`gx-icon-btn ${refreshing ? 'spinning' : ''}`} onClick={onRefresh} title="Refresh">
           <span className="codicon">refresh</span>
         </button>

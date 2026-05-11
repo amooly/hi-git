@@ -31,24 +31,35 @@ function edgePath(x1, y1, x2, y2) {
  * @param {object} branches - BRANCHES map from GITNEXUS_DATA
  * Returns: { edges: [{path, color, key}], graphWidth }
  */
-function buildEdges(commits, rowH, branches) {
+function buildEdges(commits, baseRowH, branches, filteredOut = new Set()) {
   const byShaIndex = new Map();
   commits.forEach((c, i) => byShaIndex.set(c.sha, i));
 
   const edges = [];
   let maxLane = 0;
 
+  const yPositions = new Array(commits.length);
+  let currentY = 0;
+  for (let i = 0; i < commits.length; i++) {
+    const c = commits[i];
+    const isOut = filteredOut.has(c.sha);
+    const h = isOut ? 6 : (c.refs.length > 0 ? baseRowH + 18 : baseRowH);
+    yPositions[i] = { top: currentY, center: currentY + h / 2, height: h };
+    currentY += h;
+  }
+  const totalHeight = currentY;
+
   commits.forEach((c, i) => {
     if (c.lane > maxLane) maxLane = c.lane;
     const cx = laneX(c.lane);
-    const cy = i * rowH + rowH / 2;
+    const cy = yPositions[i].center;
 
     c.parents.forEach((parentSha) => {
       const parentIdx = byShaIndex.get(parentSha);
       if (parentIdx == null) return;
       const parent = commits[parentIdx];
       const px = laneX(parent.lane);
-      const py = parentIdx * rowH + rowH / 2;
+      const py = yPositions[parentIdx].center;
       // color the edge by the LOWER (older) of the two commits' branch
       // so merges into main appear in main's color near the merge point;
       // spurs leaving main are colored by the branch they spawn.
@@ -71,7 +82,7 @@ function buildEdges(commits, rowH, branches) {
   });
 
   const graphWidth = laneX(maxLane) + LANE_X0;
-  return { edges, graphWidth, maxLane };
+  return { edges, graphWidth, maxLane, totalHeight, yPositions };
 }
 
 export { buildEdges, laneX, LANE_W, LANE_X0, ROW_H_DEFAULT };
