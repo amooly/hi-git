@@ -113,6 +113,13 @@ async function build() {
     console.log('  ✓ media/webview/panel-bundle.js\n');
 
     console.log('✅ Build complete.');
+
+  // Copy styles.css to media/webview so it ships in the .vsix
+  const stylesSrc = path.resolve(__dirname, 'src', 'webview', 'styles.css');
+  const stylesDest = path.resolve(__dirname, 'media', 'webview', 'styles.css');
+  fs.mkdirSync(path.dirname(stylesDest), { recursive: true });
+  fs.copyFileSync(stylesSrc, stylesDest);
+  console.log('  ✓ media/webview/styles.css\n');
   }
 }
 
