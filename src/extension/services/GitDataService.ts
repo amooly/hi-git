@@ -1,281 +1,367 @@
-import type { RepoData, BranchSummaryEntry, TagSummaryEntry, CompareFileData, CommitCompareData } from '@shared/types/index.js';
+import { execSync } from 'child_process';
+import * as vscode from 'vscode';
+import type {
+  RepoData, BranchSummaryEntry, TagSummaryEntry,
+  CompareFileData, CommitCompareData, CommitData, RefData, BranchRelationEntry,
+} from '@shared/types/index.js';
 
 const BRANCH_COLORS: Record<string, string> = {
-  main: '#4FC1FF',
-  develop: '#C586C0',
-  feature: '#9CDCFE',
-  release: '#DCDCAA',
-  hotfix: '#F48771',
+  main:       '#4FC1FF',
+  master:     '#4FC1FF',
+  develop:    '#C586C0',
+  feature:    '#9CDCFE',
+  release:    '#DCDCAA',
+  hotfix:     '#F48771',
   experiment: '#4EC9B0',
+  fix:        '#F48771',
+  chore:      '#B5CEA8',
 };
 
-const BRANCHES: RepoData['BRANCHES'] = {
-  'main': { lane: 0, color: BRANCH_COLORS.main, label: 'main' },
-  'develop': { lane: 1, color: BRANCH_COLORS.develop, label: 'develop' },
-  'feature/network-view': { lane: 2, color: BRANCH_COLORS.feature, label: 'feature/network-view' },
-  'feature/graph-bezier': { lane: 3, color: BRANCH_COLORS.feature, label: 'feature/graph-bezier' },
-  'release/2.4.0': { lane: 4, color: BRANCH_COLORS.release, label: 'release/2.4.0' },
-  'hotfix/auth-token-refresh': { lane: 5, color: BRANCH_COLORS.hotfix, label: 'hotfix/auth-token-refresh' },
-  'experiment/wasm-diff': { lane: 6, color: BRANCH_COLORS.experiment, label: 'experiment/wasm-diff' },
-};
+const FALLBACK_COLORS = ['#CE9178', '#D7BA7D', '#569CD6', '#4EC9B0', '#C586C0'];
 
-const COMMITS: RepoData['COMMITS'] = [
-  {
-    sha: 'a3f9c21', lane: 2, branch: 'feature/network-view', parents: ['b8e4d10'],
-    refs: [{ type: 'branch', name: 'feature/network-view', current: false }],
-    msg: 'feat(network): collapse single-commit branch tips',
-    author: 'Mira Patel', email: 'mira@gitnexus.dev', date: '2 minutes ago', dateAbs: '2026-04-18 10:42'
-  },
-
-  {
-    sha: 'b8e4d10', lane: 2, branch: 'feature/network-view', parents: ['c7a2f88'],
-    refs: [],
-    msg: 'feat(network): vertical river layout with bezier spurs',
-    author: 'Mira Patel', email: 'mira@gitnexus.dev', date: '14 minutes ago', dateAbs: '2026-04-18 10:30'
-  },
-
-  {
-    sha: 'c7a2f88', lane: 0, branch: 'main', parents: ['d1f3a09', 'e9c44b2'],
-    refs: [{ type: 'branch', name: 'main', current: true }, { type: 'remote', name: 'origin/main' }],
-    msg: 'Merge pull request #482 from develop\n\nRelease 2.3.4 → main',
-    author: 'Developer', email: 'dev@gitnexus.dev', date: '1 hour ago', dateAbs: '2026-04-18 09:48'
-  },
-
-  {
-    sha: 'd1f3a09', lane: 0, branch: 'main', parents: ['f0a8b13'],
-    refs: [{ type: 'tag', name: 'v2.3.4' }],
-    msg: 'chore(release): bump version to 2.3.4',
-    author: 'Release Bot', email: 'bot@gitnexus.dev', date: '2 hours ago', dateAbs: '2026-04-18 08:55'
-  },
-
-  {
-    sha: 'e9c44b2', lane: 1, branch: 'develop', parents: ['a1b2c93'],
-    refs: [{ type: 'branch', name: 'develop' }, { type: 'remote', name: 'origin/develop' }],
-    msg: 'fix(table): preserve scroll position when filter clears',
-    author: 'Jonas Berg', email: 'jonas@gitnexus.dev', date: '3 hours ago', dateAbs: '2026-04-18 07:31'
-  },
-
-  {
-    sha: 'f0a8b13', lane: 0, branch: 'main', parents: ['g4d7e21', 'h5b1c00'],
-    refs: [],
-    msg: "Merge branch 'hotfix/auth-token-refresh'",
-    author: 'Developer', email: 'dev@gitnexus.dev', date: '5 hours ago', dateAbs: '2026-04-18 05:10'
-  },
-
-  {
-    sha: 'h5b1c00', lane: 5, branch: 'hotfix/auth-token-refresh', parents: ['g4d7e21'],
-    refs: [{ type: 'branch', name: 'hotfix/auth-token-refresh' }],
-    msg: 'hotfix(auth): refresh token before expiry, not after',
-    author: 'Aiko Tanaka', email: 'aiko@gitnexus.dev', date: '6 hours ago', dateAbs: '2026-04-18 04:22'
-  },
-
-  {
-    sha: 'g4d7e21', lane: 0, branch: 'main', parents: ['i6f2d33'],
-    refs: [{ type: 'tag', name: 'v2.3.3' }],
-    msg: 'release: 2.3.3',
-    author: 'Release Bot', email: 'bot@gitnexus.dev', date: 'Yesterday', dateAbs: '2026-04-17 18:05'
-  },
-
-  {
-    sha: 'a1b2c93', lane: 1, branch: 'develop', parents: ['j7e8f44', 'k2a3b55'],
-    refs: [],
-    msg: 'Merge pull request #481 from feature/graph-bezier',
-    author: 'Developer', email: 'dev@gitnexus.dev', date: 'Yesterday', dateAbs: '2026-04-17 16:48'
-  },
-
-  {
-    sha: 'k2a3b55', lane: 3, branch: 'feature/graph-bezier', parents: ['l8c9d66'],
-    refs: [{ type: 'branch', name: 'feature/graph-bezier' }],
-    msg: 'refactor(graph): extract Bezier path generator',
-    author: 'Mira Patel', email: 'mira@gitnexus.dev', date: 'Yesterday', dateAbs: '2026-04-17 15:30'
-  },
-
-  {
-    sha: 'l8c9d66', lane: 3, branch: 'feature/graph-bezier', parents: ['j7e8f44'],
-    refs: [],
-    msg: 'feat(graph): smooth curves between commit nodes',
-    author: 'Mira Patel', email: 'mira@gitnexus.dev', date: 'Yesterday', dateAbs: '2026-04-17 14:12'
-  },
-
-  {
-    sha: 'i6f2d33', lane: 0, branch: 'main', parents: ['j7e8f44'],
-    refs: [],
-    msg: 'docs: update extension marketplace description',
-    author: 'Developer', email: 'dev@gitnexus.dev', date: '2 days ago', dateAbs: '2026-04-16 11:00'
-  },
-
-  {
-    sha: 'j7e8f44', lane: 1, branch: 'develop', parents: ['m9d0e77', 'n4b5c88'],
-    refs: [],
-    msg: "Merge branch 'release/2.3.0' into develop",
-    author: 'Developer', email: 'dev@gitnexus.dev', date: '2 days ago', dateAbs: '2026-04-16 10:14'
-  },
-
-  {
-    sha: 'n4b5c88', lane: 4, branch: 'release/2.4.0', parents: ['o5e6f99'],
-    refs: [{ type: 'branch', name: 'release/2.4.0' }],
-    msg: 'chore(release): cherry-pick changelog for 2.4.0',
-    author: 'Release Bot', email: 'bot@gitnexus.dev', date: '2 days ago', dateAbs: '2026-04-16 09:00'
-  },
-
-  {
-    sha: 'o5e6f99', lane: 4, branch: 'release/2.4.0', parents: ['m9d0e77'],
-    refs: [],
-    msg: 'feat(filter): real-time DOM removal with 180ms transition',
-    author: 'Jonas Berg', email: 'jonas@gitnexus.dev', date: '3 days ago', dateAbs: '2026-04-15 17:45'
-  },
-
-  {
-    sha: 'm9d0e77', lane: 1, branch: 'develop', parents: ['p6a7b00', 'q1c2d11'],
-    refs: [],
-    msg: 'Merge pull request #478 from experiment/wasm-diff',
-    author: 'Developer', email: 'dev@gitnexus.dev', date: '3 days ago', dateAbs: '2026-04-15 14:20'
-  },
-
-  {
-    sha: 'q1c2d11', lane: 6, branch: 'experiment/wasm-diff', parents: ['p6a7b00'],
-    refs: [{ type: 'branch', name: 'experiment/wasm-diff' }],
-    msg: 'experiment: WASM-backed diff renderer (POC)',
-    author: 'Aiko Tanaka', email: 'aiko@gitnexus.dev', date: '3 days ago', dateAbs: '2026-04-15 12:05'
-  },
-
-  {
-    sha: 'p6a7b00', lane: 1, branch: 'develop', parents: ['r3e4f22'],
-    refs: [],
-    msg: 'fix(context-menu): prevent menu overflow at viewport edge',
-    author: 'Jonas Berg', email: 'jonas@gitnexus.dev', date: '4 days ago', dateAbs: '2026-04-14 16:18'
-  },
-
-  {
-    sha: 'r3e4f22', lane: 1, branch: 'develop', parents: ['s7a8b33'],
-    refs: [],
-    msg: 'feat(commit): copy SHA via context menu',
-    author: 'Mira Patel', email: 'mira@gitnexus.dev', date: '4 days ago', dateAbs: '2026-04-14 11:42'
-  },
-
-  {
-    sha: 's7a8b33', lane: 0, branch: 'main', parents: ['t8c9d44'],
-    refs: [{ type: 'tag', name: 'v2.3.0' }],
-    msg: 'release: 2.3.0 — initial public release',
-    author: 'Developer', email: 'dev@gitnexus.dev', date: '5 days ago', dateAbs: '2026-04-13 09:00'
-  },
-
-  {
-    sha: 't8c9d44', lane: 0, branch: 'main', parents: [],
-    refs: [],
-    msg: 'initial commit',
-    author: 'Developer', email: 'dev@gitnexus.dev', date: '6 days ago', dateAbs: '2026-04-12 18:30'
-  },
-];
-
-const BRANCH_RELATIONS: RepoData['BRANCH_RELATIONS'] = {
-  trunk: 'main',
-  branches: [
-    {
-      name: 'main', lane: 0, color: BRANCH_COLORS.main, commits: 6, status: 'current',
-      mergesInto: null, spawnedFrom: null, spawnAt: null
-    },
-    {
-      name: 'develop', lane: 1, color: BRANCH_COLORS.develop, commits: 8, status: 'active',
-      mergesInto: 'main', mergePoint: 'c7a2f88', spawnedFrom: 'main', spawnAt: 's7a8b33'
-    },
-    {
-      name: 'feature/network-view', lane: 2, color: BRANCH_COLORS.feature, commits: 2, status: 'in-progress',
-      mergesInto: null, spawnedFrom: 'main', spawnAt: 'c7a2f88'
-    },
-    {
-      name: 'feature/graph-bezier', lane: 3, color: BRANCH_COLORS.feature, commits: 2, status: 'merged',
-      mergesInto: 'develop', mergePoint: 'a1b2c93', spawnedFrom: 'develop', spawnAt: 'j7e8f44'
-    },
-    {
-      name: 'release/2.4.0', lane: 4, color: BRANCH_COLORS.release, commits: 2, status: 'in-progress',
-      mergesInto: 'develop', mergePoint: 'j7e8f44', spawnedFrom: 'develop', spawnAt: 'm9d0e77'
-    },
-    {
-      name: 'hotfix/auth-token-refresh', lane: 5, color: BRANCH_COLORS.hotfix, commits: 1, status: 'merged',
-      mergesInto: 'main', mergePoint: 'f0a8b13', spawnedFrom: 'main', spawnAt: 'g4d7e21'
-    },
-    {
-      name: 'experiment/wasm-diff', lane: 6, color: BRANCH_COLORS.experiment, commits: 1, status: 'merged',
-      mergesInto: 'develop', mergePoint: 'm9d0e77', spawnedFrom: 'develop', spawnAt: 'p6a7b00'
-    },
-  ],
-};
-
-// Ahead/behind metadata — will come from `git rev-list --count` once real git is wired
-const BRANCH_META: Record<string, string> = {
-  'main': '↑2 ↓0',
-  'develop': '↓3',
-  'feature/network-view': '↑2',
-};
-
-class GitDataService {
-  getRepoData(): RepoData {
-    return { COMMITS, BRANCHES, BRANCH_COLORS, BRANCH_RELATIONS };
+function getBranchColor(name: string): string {
+  for (const [prefix, color] of Object.entries(BRANCH_COLORS)) {
+    if (name === prefix || name.startsWith(prefix + '/')) return color;
   }
+  let h = 0;
+  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return FALLBACK_COLORS[h % FALLBACK_COLORS.length];
+}
 
-  getBranchSummary(): BranchSummaryEntry[] {
-    const current = this._currentBranch();
-    return Object.entries(BRANCHES).map(([name, b]) => ({
-      name,
-      color: b.color,
-      current: name === current,
-      meta: BRANCH_META[name],
-    }));
+function getWorkspaceRoot(): string {
+  return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd();
+}
+
+function exec(cmd: string, cwd: string): string {
+  try {
+    return execSync(cmd, { cwd, encoding: 'utf8', timeout: 10_000 }).trim();
+  } catch {
+    return '';
   }
+}
 
-  getTagSummary(): TagSummaryEntry[] {
-    const seen = new Set<string>();
-    const tags: TagSummaryEntry[] = [];
-    for (const c of COMMITS) {
-      for (const r of c.refs) {
-        if (r.type === 'tag' && !seen.has(r.name)) {
-          seen.add(r.name);
-          tags.push({ name: r.name });
+interface RawCommit {
+  sha: string;
+  parents: string[];
+  refs: RefData[];
+  msg: string;
+  author: string;
+  email: string;
+  date: string;
+  dateAbs: string;
+}
+
+function parseRefs(decorator: string): RefData[] {
+  if (!decorator.trim()) return [];
+  const refs: RefData[] = [];
+  for (const part of decorator.split(', ')) {
+    const p = part.trim();
+    const lower = p.toLowerCase();
+    if (!p || lower === 'head') continue;
+
+    if (lower.startsWith('head -> refs/heads/')) {
+      refs.push({ type: 'branch', name: p.slice(19), current: true });
+    } else if (lower.startsWith('head -> ')) {
+      refs.push({ type: 'branch', name: p.slice(8), current: true });
+    } else if (lower.startsWith('refs/heads/')) {
+      refs.push({ type: 'branch', name: p.slice(11) });
+    } else if (lower.startsWith('refs/remotes/')) {
+      refs.push({ type: 'remote', name: p.slice(13) });
+    } else if (lower.startsWith('refs/tags/')) {
+      refs.push({ type: 'tag', name: p.slice(10) });
+    } else if (lower.startsWith('tag: ')) {
+      refs.push({ type: 'tag', name: p.slice(5) });
+    } else if (p.includes('/')) {
+      // Check if it's a remote but prefixed with REFS/ (sometimes happens in some git versions/output)
+      if (lower.startsWith('refs/')) {
+        const stripped = p.slice(5);
+        if (lower.startsWith('refs/tags/')) refs.push({ type: 'tag', name: stripped.slice(5) });
+        else if (lower.startsWith('refs/remotes/')) refs.push({ type: 'remote', name: stripped.slice(8) });
+        else refs.push({ type: 'branch', name: stripped });
+      } else {
+        refs.push({ type: 'remote', name: p });
+      }
+    } else {
+      refs.push({ type: 'branch', name: p });
+    }
+  }
+  return refs;
+}
+
+function fetchRawCommits(cwd: string, maxCount = 500): RawCommit[] {
+  // Use git's own hex escapes (%x1f, %x1e) as field/record separators in the output.
+  // This avoids conflicts with any characters that could appear in commit metadata.
+  const raw = exec(
+    `git log --all --topo-order --decorate=full --max-count=${maxCount}` +
+    ` --format=%H%x1f%P%x1f%D%x1f%s%x1f%aN%x1f%aE%x1f%ar%x1f%ai%x1e`,
+    cwd,
+  );
+
+  return raw.split('\x1e')
+    .map(r => r.trim())
+    .filter(Boolean)
+    .map(record => {
+      const f = record.split('\x1f');
+      return {
+        sha:     f[0]?.trim() ?? '',
+        parents: f[1]?.trim() ? f[1].trim().split(' ').filter(Boolean) : [],
+        refs:    parseRefs(f[2]?.trim() ?? ''),
+        msg:     f[3]?.trim() ?? '',
+        author:  f[4]?.trim() ?? '',
+        email:   f[5]?.trim() ?? '',
+        date:    f[6]?.trim() ?? '',
+        dateAbs: f[7]?.trim() ?? '',
+      };
+    })
+    .filter(c => c.sha.length > 0);
+}
+
+// Assign commits to lanes using the active-lanes graph-walk algorithm.
+// Each lane tracks the next SHA it expects; when a commit matches, it inherits that lane.
+// Merge parents open new lanes so their branch is rendered independently.
+function buildGraphData(rawCommits: RawCommit[]): {
+  commits: CommitData[];
+  branches: RepoData['BRANCHES'];
+  branchColors: RepoData['BRANCH_COLORS'];
+  branchLanes: Map<string, number>;
+} {
+  const activeLanes: Array<string | null> = [];
+  const laneBranch: string[] = [];
+  const branchLanes = new Map<string, number>();
+  const branchColorMap: Record<string, string> = {};
+  const commits: CommitData[] = [];
+
+  for (const rc of rawCommits) {
+    let laneIdx = activeLanes.indexOf(rc.sha);
+    const localRef = rc.refs.find(r => r.type === 'branch');
+
+    let branch: string;
+    if (laneIdx >= 0) {
+      // Inherit the lane's branch, but let an explicit ref override the placeholder name
+      branch = localRef?.name ?? laneBranch[laneIdx];
+      laneBranch[laneIdx] = branch;
+      activeLanes[laneIdx] = rc.parents[0] ?? null;
+    } else {
+      // New branch tip — open a fresh lane
+      branch = localRef?.name
+             ?? rc.refs.find(r => r.type === 'remote')?.name.replace(/^[^/]+\//, '')
+             ?? `anon-${rc.sha.slice(0, 4)}`;
+      laneIdx = activeLanes.indexOf(null);
+      if (laneIdx < 0) { laneIdx = activeLanes.length; activeLanes.push(null); laneBranch.push(''); }
+      laneBranch[laneIdx] = branch;
+      activeLanes[laneIdx] = rc.parents[0] ?? null;
+    }
+
+    if (!branchLanes.has(branch)) {
+      branchLanes.set(branch, laneIdx);
+      branchColorMap[branch] = getBranchColor(branch);
+    }
+
+    // Open a new lane for each merge parent (parents[1+]) so it renders as a separate branch line
+    for (let i = 1; i < rc.parents.length; i++) {
+      const pSha = rc.parents[i];
+      if (!activeLanes.includes(pSha)) {
+        const freeIdx = activeLanes.indexOf(null);
+        const placeholder = `anon-${pSha.slice(0, 4)}`;
+        if (freeIdx >= 0) {
+          activeLanes[freeIdx] = pSha;
+          laneBranch[freeIdx] = placeholder;
+        } else {
+          activeLanes.push(pSha);
+          laneBranch.push(placeholder);
         }
       }
     }
-    return tags;
+
+    commits.push({
+      sha:     rc.sha.slice(0, 7),
+      lane:    laneIdx,
+      branch,
+      parents: rc.parents.map(p => p.slice(0, 7)),
+      refs:    rc.refs,
+      msg:     rc.msg,
+      author:  rc.author,
+      email:   rc.email,
+      date:    rc.date,
+      dateAbs: rc.dateAbs,
+    });
+  }
+
+  const branches: RepoData['BRANCHES'] = {};
+  for (const [name, lane] of branchLanes) {
+    branches[name] = { lane, color: getBranchColor(name), label: name };
+  }
+
+  return { commits, branches, branchColors: branchColorMap, branchLanes };
+}
+
+function buildBranchRelations(
+  commits: CommitData[],
+  branchLanes: Map<string, number>,
+  headBranch: string,
+): RepoData['BRANCH_RELATIONS'] {
+  const allBranches = [...branchLanes.keys()];
+  const trunk = allBranches.includes('main') ? 'main'
+              : allBranches.includes('master') ? 'master'
+              : allBranches[0] ?? 'main';
+
+  const commitMap = new Map<string, CommitData>(commits.map(c => [c.sha, c]));
+
+  const entries: BranchRelationEntry[] = [];
+  for (const [name, lane] of branchLanes) {
+    const branchCommits = commits.filter(c => c.branch === name);
+
+    // Find the merge commit (on another branch) that merged this branch in
+    let mergePoint: string | null = null;
+    let mergesInto: string | null = null;
+    if (name !== trunk) {
+      for (const c of commits) {
+        if (c.parents.length >= 2) {
+          for (let i = 1; i < c.parents.length; i++) {
+            if (commitMap.get(c.parents[i])?.branch === name) {
+              mergePoint = c.sha;
+              mergesInto = c.branch;
+              break;
+            }
+          }
+          if (mergePoint) break;
+        }
+      }
+    }
+
+    // The spawn point is the first parent of the oldest branch commit that lives on a different branch
+    let spawnAt: string | null = null;
+    let spawnedFrom: string | null = null;
+    if (name !== trunk && branchCommits.length > 0) {
+      const oldest = branchCommits[branchCommits.length - 1];
+      const firstParent = oldest.parents[0] ? commitMap.get(oldest.parents[0]) : undefined;
+      if (firstParent && firstParent.branch !== name) {
+        spawnAt = oldest.parents[0];
+        spawnedFrom = firstParent.branch;
+      }
+    }
+
+    const status = name === headBranch ? 'current'
+                 : mergePoint          ? 'merged'
+                 : 'active';
+
+    entries.push({
+      name, lane,
+      color: getBranchColor(name),
+      commits: branchCommits.length,
+      status,
+      mergesInto,
+      mergePoint,
+      spawnedFrom,
+      spawnAt,
+    });
+  }
+
+  entries.sort((a, b) => a.name === trunk ? -1 : b.name === trunk ? 1 : a.lane - b.lane);
+  return { trunk, branches: entries };
+}
+
+function formatTrack(track: string): string | undefined {
+  const ahead  = track.match(/ahead (\d+)/)?.[1];
+  const behind = track.match(/behind (\d+)/)?.[1];
+  const parts: string[] = [];
+  if (ahead)  parts.push(`↑${ahead}`);
+  if (behind) parts.push(`↓${behind}`);
+  return parts.join(' ') || undefined;
+}
+
+class GitDataService {
+  getRepoData(): RepoData {
+    const cwd = getWorkspaceRoot();
+    const rawCommits = fetchRawCommits(cwd);
+
+    if (rawCommits.length === 0) {
+      return { COMMITS: [], BRANCHES: {}, BRANCH_COLORS: {}, BRANCH_RELATIONS: { trunk: 'main', branches: [] } };
+    }
+
+    const headBranch = exec('git rev-parse --abbrev-ref HEAD', cwd);
+    const { commits, branches, branchColors, branchLanes } = buildGraphData(rawCommits);
+    const branchRelations = buildBranchRelations(commits, branchLanes, headBranch);
+
+    return { COMMITS: commits, BRANCHES: branches, BRANCH_COLORS: branchColors, BRANCH_RELATIONS: branchRelations };
+  }
+
+  getBranchSummary(): BranchSummaryEntry[] {
+    const cwd = getWorkspaceRoot();
+    const headBranch = exec('git rev-parse --abbrev-ref HEAD', cwd);
+    const out = exec(`git branch --format='%(refname:short)|%(upstream:track)'`, cwd);
+    return out.split('\n')
+      .filter(Boolean)
+      .map(line => {
+        const [name, track = ''] = line.split('|');
+        const trimmedName = name.trim();
+        return {
+          name: trimmedName,
+          color: getBranchColor(trimmedName),
+          current: trimmedName === headBranch,
+          meta: formatTrack(track.trim()),
+        };
+      });
+  }
+
+  getTagSummary(): TagSummaryEntry[] {
+    const cwd = getWorkspaceRoot();
+    const out = exec('git tag --sort=-version:refname', cwd);
+    return out.split('\n').filter(Boolean).map(name => ({ name: name.trim() }));
   }
 
   getCommitDiff(sha: string): CommitCompareData {
-    const commit = COMMITS.find(c => c.sha === sha);
-    const parentSha = commit?.parents[0] ?? null;
-    const message = commit?.msg.split('\n')[0] ?? sha;
+    const cwd = getWorkspaceRoot();
+    const message  = exec(`git log -1 --format=%s ${sha}`, cwd);
+    const parentLine = exec(`git log -1 --format=%P ${sha}`, cwd);
+    const parentSha  = parentLine.split(' ')[0]?.slice(0, 7) || null;
 
-    const MOCK_FILE_SETS: Record<string, CompareFileData[]> = {
-      default: [
-        { status: 'modified', path: 'src/extension/services/GitDataService.ts', insertions: 12, deletions: 4 },
-        { status: 'modified', path: 'src/webview/components/CommitTable.jsx',   insertions: 8,  deletions: 2 },
-        { status: 'added',    path: 'src/shared/types/compare.ts',              insertions: 24, deletions: 0 },
-        { status: 'deleted',  path: 'src/webview/utils/oldHelper.js',           insertions: 0,  deletions: 15 },
-      ],
-      alt1: [
-        { status: 'modified', path: 'src/extension/vs-ui/GraphPanel.ts',        insertions: 34, deletions: 11 },
-        { status: 'added',    path: 'src/extension/vs-ui/CompareProvider.ts',   insertions: 80, deletions: 0 },
-        { status: 'modified', path: 'package.json',                             insertions: 6,  deletions: 0 },
-      ],
-      alt2: [
-        { status: 'modified', path: 'src/webview/styles.css',                   insertions: 22, deletions: 5 },
-        { status: 'modified', path: 'src/webview/components/ContextMenu.jsx',   insertions: 9,  deletions: 3 },
-        { status: 'renamed',  path: 'src/webview/constants/contextMenuItems.js', oldPath: 'src/webview/constants/menuItems.js', insertions: 0, deletions: 0 },
-      ],
-    };
+    // name-status gives us A/M/D/R codes; numstat gives insertion/deletion counts
+    const statusLines  = exec(`git diff-tree --no-commit-id -r --name-status -M50% ${sha}`, cwd).split('\n').filter(Boolean);
+    const numstatLines = exec(`git diff-tree --no-commit-id -r --numstat -M50% ${sha}`, cwd).split('\n').filter(Boolean);
 
-    const keys = Object.keys(MOCK_FILE_SETS);
-    const idx = sha.charCodeAt(0) % keys.length;
-    const files = MOCK_FILE_SETS[keys[idx]] ?? MOCK_FILE_SETS.default;
-
-    return { sha, parentSha, message, files };
-  }
-
-  private _currentBranch(): string {
-    for (const c of COMMITS) {
-      for (const r of c.refs) {
-        if (r.type === 'branch' && r.current) { return r.name; }
+    const statusMap = new Map<string, { status: CompareFileData['status']; oldPath?: string }>();
+    for (const line of statusLines) {
+      const parts = line.split('\t');
+      const code = parts[0].charAt(0);
+      if (code === 'R' || code === 'C') {
+        statusMap.set(parts[2], { status: 'renamed', oldPath: parts[1] });
+      } else {
+        const s: CompareFileData['status'] = code === 'A' ? 'added' : code === 'D' ? 'deleted' : 'modified';
+        statusMap.set(parts[1], { status: s });
       }
     }
-    return '';
+
+    const files: CompareFileData[] = numstatLines.flatMap(line => {
+      const [ins, del, rawPath] = line.split('\t');
+      if (!rawPath) return [];
+
+      const insertions = ins === '-' ? 0 : (parseInt(ins) || 0);
+      const deletions  = del === '-' ? 0 : (parseInt(del) || 0);
+
+      // Parse git's brace-rename format: "some/{old => new}/path" or "old => new"
+      let path = rawPath;
+      let oldPath: string | undefined;
+      const braceMatch = rawPath.match(/^(.*)\{(.+) => (.+)\}(.*)$/);
+      if (braceMatch) {
+        const [, pre, old, neu, suf] = braceMatch;
+        oldPath = `${pre}${old}${suf}`.replace(/\/+/g, '/').replace(/^\//, '');
+        path    = `${pre}${neu}${suf}`.replace(/\/+/g, '/').replace(/^\//, '');
+      } else if (rawPath.includes(' => ')) {
+        const idx = rawPath.indexOf(' => ');
+        oldPath = rawPath.slice(0, idx).trim();
+        path    = rawPath.slice(idx + 4).trim();
+      }
+
+      const info = statusMap.get(path) ?? statusMap.get(rawPath);
+      if (!oldPath && info?.oldPath) oldPath = info.oldPath;
+
+      const entry: CompareFileData = { status: info?.status ?? 'modified', path, insertions, deletions };
+      if (oldPath) entry.oldPath = oldPath;
+      return [entry];
+    });
+
+    return { sha: sha.slice(0, 7), parentSha, message, files };
   }
 }
 

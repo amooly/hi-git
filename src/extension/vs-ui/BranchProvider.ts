@@ -11,6 +11,8 @@ export class BranchProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'hi-git.sidebarView';
 
     private _view?: vscode.WebviewView;
+    private _disposables: vscode.Disposable[] = [];
+    private _refreshTimer?: ReturnType<typeof setTimeout>;
 
     constructor(private readonly _extensionUri: vscode.Uri) { }
 
@@ -28,7 +30,6 @@ export class BranchProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
-        // Handle messages from the sidebar webview
         webviewView.webview.onDidReceiveMessage((message) => {
             switch (message.command) {
                 case 'showGraph':
@@ -36,6 +37,44 @@ export class BranchProvider implements vscode.WebviewViewProvider {
                     break;
             }
         });
+
+        const scheduleRefresh = () => {
+            clearTimeout(this._refreshTimer);
+            this._refreshTimer = setTimeout(() => this.refresh(), 300);
+        };
+
+        // Watch .git/HEAD for branch switches (checkout, etc.)
+        const headWatcher = vscode.workspace.createFileSystemWatcher('**/.git/HEAD');
+        headWatcher.onDidChange(scheduleRefresh, null, this._disposables);
+
+        // Watch .git/refs/** for branch create/delete/update
+        const refsWatcher = vscode.workspace.createFileSystemWatcher('**/.git/refs/**');
+        refsWatcher.onDidCreate(scheduleRefresh, null, this._disposables);
+        refsWatcher.onDidChange(scheduleRefresh, null, this._disposables);
+        refsWatcher.onDidDelete(scheduleRefresh, null, this._disposables);
+
+        // Watch packed-refs, updated by fetch/gc instead of individual ref files
+        const packedRefsWatcher = vscode.workspace.createFileSystemWatcher('**/.git/packed-refs');
+        packedRefsWatcher.onDidChange(scheduleRefresh, null, this._disposables);
+
+        this._disposables.push(
+            headWatcher,
+            refsWatcher,
+            packedRefsWatcher,
+            vscode.workspace.onDidChangeWorkspaceFolders(() => this.refresh()),
+        );
+
+        webviewView.onDidDispose(() => {
+            clearTimeout(this._refreshTimer);
+            this._disposables.forEach(d => d.dispose());
+            this._disposables = [];
+        });
+    }
+
+    public refresh(): void {
+        if (this._view) {
+            this._view.webview.html = this._getHtmlForWebview(this._view.webview);
+        }
     }
 
     private _getHtmlForWebview(webview: vscode.Webview): string {
@@ -181,7 +220,7 @@ export class BranchProvider implements vscode.WebviewViewProvider {
         </button>
 
         <div>
-            <div class="section-title">Branches</div>
+            <div class="section-title">Local Branches</div>
             <ul class="branch-list">
                 ${SidebarRenderer.branchItems(gitDataService.getBranchSummary())}
             </ul>

@@ -9,10 +9,12 @@ import { buildEdges }  from '../graph.js';
 
 /** Build the initial colFilters structure from commit data. */
 function buildColFilters(commits) {
-  // GRAPH: unique branch names from refs
-  const graphItems = [...new Set(
-    commits.flatMap(c => c.refs.map(r => r.name))
-  )].sort();
+  // GRAPH: unique ref names + type
+  const graphItems = Array.from(
+    commits.flatMap(c => c.refs.map(r => ({ name: r.name, type: r.type })))
+      .reduce((map, item) => map.set(item.name, item), new Map())
+      .values()
+  ).sort((a, b) => a.name.localeCompare(b.name));
 
   // SHA: short SHAs (first 7 chars, should already be 7 in data)
   const shaItems = commits.map(c => c.sha);
