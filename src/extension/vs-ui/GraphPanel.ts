@@ -118,7 +118,7 @@ export class GraphPanel {
 
   private _getWebviewContent(webview: vscode.Webview): string {
     const stylesUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'styles.css')
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'webview', 'styles.css')
     );
     const vscodeApiUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'media', 'webview', 'vscodeApi.js')
