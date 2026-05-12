@@ -68,11 +68,10 @@ export function GraphPanel({
   }, [colFilters, data.COMMITS]);
 
   // Build SVG edges
-  const { edges, graphWidth, totalHeight, yPositions } = React.useMemo(
+  const { edges, graphWidth, totalHeight, yPositions, computedLanes } = React.useMemo(
     () => buildEdges(data.COMMITS, rowH, data.BRANCHES, filteredOut),
     [data.COMMITS, rowH, data.BRANCHES, filteredOut]
   );
-  const graphColW = Math.max(graphWidth + 180, 260); // graph + branch label space
 
   // Close context menu on outside click, scroll, or Escape.
   React.useEffect(() => {
@@ -111,7 +110,7 @@ export function GraphPanel({
   };
 
   return (
-    <div className="gx-panel" style={{ '--graph-col-w': `${graphColW}px`, '--row-h': `${rowH}px` }}>
+    <div className="gx-panel" style={{ '--row-h': `${rowH}px` }}>
       <Header
         theme={theme} onToggleTheme={onToggleTheme}
         onRefresh={onRefresh} refreshing={refreshing}
@@ -124,12 +123,14 @@ export function GraphPanel({
         graphWidth={graphWidth}
         totalHeight={totalHeight}
         yPositions={yPositions}
+        computedLanes={computedLanes}
         selectedSha={selectedSha}
         setSelectedSha={setSelectedSha}
         filteredOut={filteredOut}
         onRowContext={onRowContext}
         colFilters={colFilters}
         setColFilters={setColFilters}
+        rowH={rowH}
       />
 
       {contextMenu && <ContextMenu menu={contextMenu} onCopySha={onCopySha} onCompareWithPrev={onCompareWithPrev} />}

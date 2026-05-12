@@ -25,15 +25,63 @@ function edgePath(x1, y1, x2, y2) {
 }
 
 /**
+ * Greedily assign lanes to minimise total graph width.
+ * Processes commits newest-first, tracking which SHA is "expected" on each
+ * lane slot and reusing freed slots immediately.
+ */
+function assignLanes(commits) {
+  const lanes = new Array(commits.length).fill(0);
+  // activeLanes[slot] = sha we're still waiting for on that lane, null = free
+  const activeLanes = [];
+
+  const findFreeSlot = () => {
+    for (let i = 0; i < activeLanes.length; i++) {
+      if (activeLanes[i] === null) return i;
+    }
+    return activeLanes.length;
+  };
+
+  for (let i = 0; i < commits.length; i++) {
+    const c = commits[i];
+
+    let myLane = activeLanes.indexOf(c.sha);
+    if (myLane === -1) {
+      myLane = findFreeSlot();
+      if (myLane === activeLanes.length) activeLanes.push(null);
+    }
+    lanes[i] = myLane;
+    activeLanes[myLane] = null;
+
+    if (c.parents.length > 0) {
+      // First parent continues on this lane (unless already tracked elsewhere)
+      if (activeLanes.indexOf(c.parents[0]) === -1) {
+        activeLanes[myLane] = c.parents[0];
+      }
+      // Additional parents (merge) take the smallest available slot
+      for (let k = 1; k < c.parents.length; k++) {
+        if (activeLanes.indexOf(c.parents[k]) === -1) {
+          const slot = findFreeSlot();
+          if (slot === activeLanes.length) activeLanes.push(c.parents[k]);
+          else activeLanes[slot] = c.parents[k];
+        }
+      }
+    }
+  }
+  return lanes;
+}
+
+/**
  * Build the full set of edges for the commit list.
  * @param {object[]} commits - ordered newest→oldest
  * @param {number} rowH - row height in px
  * @param {object} branches - BRANCHES map from GITNEXUS_DATA
- * Returns: { edges: [{path, color, key}], graphWidth }
+ * Returns: { edges, graphWidth, maxLane, totalHeight, yPositions, computedLanes }
  */
 function buildEdges(commits, baseRowH, branches, filteredOut = new Set()) {
   const byShaIndex = new Map();
   commits.forEach((c, i) => byShaIndex.set(c.sha, i));
+
+  const computedLanes = assignLanes(commits);
 
   const edges = [];
   let maxLane = 0;
@@ -50,21 +98,23 @@ function buildEdges(commits, baseRowH, branches, filteredOut = new Set()) {
   const totalHeight = currentY;
 
   commits.forEach((c, i) => {
-    if (c.lane > maxLane) maxLane = c.lane;
-    const cx = laneX(c.lane);
+    const cl = computedLanes[i];
+    if (cl > maxLane) maxLane = cl;
+    const cx = laneX(cl);
     const cy = yPositions[i].center;
 
     c.parents.forEach((parentSha) => {
       const parentIdx = byShaIndex.get(parentSha);
       if (parentIdx == null) return;
       const parent = commits[parentIdx];
-      const px = laneX(parent.lane);
+      const pl = computedLanes[parentIdx];
+      const px = laneX(pl);
       const py = yPositions[parentIdx].center;
       // color the edge by the LOWER (older) of the two commits' branch
       // so merges into main appear in main's color near the merge point;
       // spurs leaving main are colored by the branch they spawn.
       let edgeColor;
-      if (c.lane === parent.lane) {
+      if (cl === pl) {
         edgeColor = branches[c.branch].color;
       } else if (c.parents.length > 1) {
         // merge: this edge brings parent's branch INTO c's branch
@@ -77,12 +127,13 @@ function buildEdges(commits, baseRowH, branches, filteredOut = new Set()) {
         d: edgePath(cx, cy, px, py),
         color: edgeColor,
         key: `${c.sha}-${parentSha}`,
+        fromIdx: i,
       });
     });
   });
 
   const graphWidth = laneX(maxLane) + LANE_X0;
-  return { edges, graphWidth, maxLane, totalHeight, yPositions };
+  return { edges, graphWidth, maxLane, totalHeight, yPositions, computedLanes };
 }
 
 export { buildEdges, laneX, LANE_W, LANE_X0, ROW_H_DEFAULT };

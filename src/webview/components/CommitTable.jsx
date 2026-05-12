@@ -4,15 +4,80 @@ import { authorAvatarColor, authorInitials } from '../utils/authorUtils.js';
 import { laneX } from '../graph.js';
 import { ColumnFilter } from './ColumnFilter.jsx';
 
+const MIN_COL_WIDTHS = { graph: 60, sha: 100, author: 80, date: 60 };
+
 export function CommitTable({
   data, nodeStyle, edges, graphWidth, totalHeight, yPositions,
+  computedLanes,
   selectedSha, setSelectedSha, filteredOut, onRowContext,
   colFilters, setColFilters,
+  rowH,
 }) {
   const tableWrapRef = React.useRef(null);
+  const sentinelRef = React.useRef(null);
+
+  const [visibleCount, setVisibleCount] = React.useState(() =>
+    Math.min(Math.ceil((window.innerHeight * 1.5) / rowH), data.COMMITS.length)
+  );
+
+  React.useEffect(() => {
+    if (visibleCount >= data.COMMITS.length) return;
+    const chunkSize = () =>
+      Math.ceil(((tableWrapRef.current?.clientHeight ?? window.innerHeight) * 1.5) / rowH);
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting)
+        setVisibleCount(prev => Math.min(prev + chunkSize(), data.COMMITS.length));
+    }, { root: tableWrapRef.current, threshold: 0 });
+    if (sentinelRef.current) observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [visibleCount, data.COMMITS.length, rowH]);
+
+  const visibleCommits = data.COMMITS.slice(0, visibleCount);
+  const visibleEdges = edges.filter(e => e.fromIdx < visibleCount);
+  const lastPos = yPositions[visibleCount - 1];
+  const visibleHeight = lastPos ? lastPos.top + lastPos.height : totalHeight;
+
+  const [colWidths, setColWidths] = React.useState(() => ({
+    graph: Math.min(300, Math.max(graphWidth + 180, 260)),
+    sha: 100,
+    author: 160,
+    date: 130,
+  }));
+  const colWidthsRef = React.useRef(colWidths);
+  colWidthsRef.current = colWidths;
+
+  const startResize = React.useCallback((col, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = colWidthsRef.current[col];
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    const onMove = (ev) => {
+      const w = Math.max(MIN_COL_WIDTHS[col], startW + ev.clientX - startX);
+      setColWidths(prev => ({ ...prev, [col]: w }));
+    };
+    const onUp = () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, []);
 
   return (
-    <div className="gx-table-wrap" ref={tableWrapRef}>
+    <div
+      className="gx-table-wrap"
+      ref={tableWrapRef}
+      style={{
+        '--graph-col-w': `${colWidths.graph}px`,
+        '--col-sha': `${colWidths.sha}px`,
+        '--col-author': `${colWidths.author}px`,
+        '--col-date': `${colWidths.date}px`,
+      }}
+    >
       {/* Column headers */}
       <div className="gx-table">
         <div className="gx-thead">
@@ -25,6 +90,7 @@ export function CommitTable({
               selected={colFilters.graph.selected}
               onChange={sel => setColFilters(f => ({ ...f, graph: { ...f.graph, selected: sel } }))}
             />
+            <div className="gx-col-resize-handle" onMouseDown={e => startResize('graph', e)} />
           </div>
 
           {/* SHA */}
@@ -36,6 +102,7 @@ export function CommitTable({
               selected={colFilters.sha.selected}
               onChange={sel => setColFilters(f => ({ ...f, sha: { ...f.sha, selected: sel } }))}
             />
+            <div className="gx-col-resize-handle" onMouseDown={e => startResize('sha', e)} />
           </div>
 
           <div className="gx-th">Message</div>
@@ -49,29 +116,43 @@ export function CommitTable({
               selected={colFilters.author.selected}
               onChange={sel => setColFilters(f => ({ ...f, author: { ...f.author, selected: sel } }))}
             />
+            <div className="gx-col-resize-handle" onMouseDown={e => startResize('author', e)} />
           </div>
 
-          <div className="gx-th">Date</div>
+          <div className="gx-th">
+            Date
+            <div className="gx-col-resize-handle" onMouseDown={e => startResize('date', e)} />
+          </div>
         </div>
       </div>
 
       <div className="gx-rows" style={{ position: 'relative' }}>
-        {/* SVG graph overlay */}
-        <svg className="gx-graph-svg"
-          width={graphWidth}
-          height={totalHeight}
-          style={{ height: totalHeight }}>
-          {edges.map(e => (
-            <path key={e.key} d={e.d} fill="none" stroke={e.color}
-              strokeWidth="2" strokeLinecap="round" />
-          ))}
-        </svg>
+        {/* SVG graph overlay — clipped to current graph column width */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0,
+          width: colWidths.graph,
+          height: visibleHeight,
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          zIndex: 1,
+        }}>
+          <svg className="gx-graph-svg"
+            width={graphWidth}
+            height={visibleHeight}
+            style={{ height: visibleHeight }}>
+            {visibleEdges.map(e => (
+              <path key={e.key} d={e.d} fill="none" stroke={e.color}
+                strokeWidth="2" strokeLinecap="round" />
+            ))}
+          </svg>
+        </div>
 
-        {data.COMMITS.map((c, i) => {
+        {visibleCommits.map((c, i) => {
           const out = filteredOut.has(c.sha);
           const branch = data.BRANCHES[c.branch];
           const isMerge = c.parents.length > 1;
-          const x = laneX(c.lane);
+          const lane = computedLanes ? computedLanes[i] : c.lane;
+          const x = laneX(lane);
           const yPos = yPositions[i];
           const nodeStyleProps = nodeStyle === 'square'
             ? { borderRadius: 2, width: 11, height: 11 }
@@ -158,6 +239,10 @@ export function CommitTable({
             </div>
           );
         })}
+
+        {visibleCount < data.COMMITS.length && (
+          <div ref={sentinelRef} style={{ height: 1 }} />
+        )}
       </div>
     </div>
   );
