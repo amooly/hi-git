@@ -3,6 +3,7 @@ import { GraphPanel } from './vs-ui/GraphPanel.js';
 import { BranchProvider } from './vs-ui/BranchProvider.js';
 import { DetailProvider } from './vs-ui/DetailProvider.js';
 import { CompareProvider } from './vs-ui/CompareProvider.js';
+import { GitBlobProvider } from './vs-ui/GitBlobProvider.js';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -31,6 +32,13 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(
     vscode.window.registerFileDecorationProvider(compareProvider)
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.registerTextDocumentContentProvider(
+      GitBlobProvider.scheme,
+      new GitBlobProvider()
+    )
   );
 
   context.subscriptions.push(

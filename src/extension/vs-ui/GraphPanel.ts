@@ -68,13 +68,16 @@ export class GraphPanel {
     this._panel.webview.onDidReceiveMessage(
       (message) => {
         if (message.type === 'commitSelected' && this._detailsProvider) {
-          this._detailsProvider.showCommit(message.payload?.commit, message.payload?.branch);
+          this._detailsProvider.showCommit(message.payload?.commit, message.payload?.branch, false);
         }
-        if (message.type === 'compareWithPrev' && this._compareProvider) {
+        if (message.type === 'commitReveal' && this._detailsProvider) {
+          this._detailsProvider.showCommit(message.payload?.commit, message.payload?.branch, true);
+        }
+        if (message.type === 'compareWithLocal' && this._compareProvider) {
           const { sha } = message.payload ?? {};
           if (sha) {
-            const diff = gitDataService.getCommitDiff(sha);
-            this._compareProvider.showDiff(diff.sha, diff.parentSha, diff.message, diff.files);
+            const diff = gitDataService.getCommitDiffWithLocal(sha);
+            this._compareProvider.showLocalDiff(diff.sha, diff.message, diff.files);
             vscode.commands.executeCommand(`${CompareProvider.viewType}.focus`);
           }
         }

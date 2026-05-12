@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { CompareFileData } from '@shared/types/index.js';
+import { GitBlobProvider } from './GitBlobProvider.js';
 
 const SCHEME = 'hi-git-compare';
 
@@ -16,7 +17,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_PRIORITY: Record<string, number> = { A: 4, M: 3, D: 2, R: 1 };
 
-type CompareItem = FolderItem | FileItem | PlaceholderItem;
+type CompareItem = FolderItem | LocalFileItem | PlaceholderItem;
 
 class FolderItem extends vscode.TreeItem {
   constructor(
@@ -38,11 +39,18 @@ class FolderItem extends vscode.TreeItem {
   }
 }
 
-class FileItem extends vscode.TreeItem {
-  constructor(name: string, readonly file: CompareFileData) {
+function blobUri(filePath: string, sha: string | null): vscode.Uri {
+  return vscode.Uri.from({
+    scheme: GitBlobProvider.scheme,
+    path: '/' + filePath,
+    query: sha ? `sha=${sha}` : 'sha=EMPTY',
+  });
+}
+
+class LocalFileItem extends vscode.TreeItem {
+  constructor(name: string, readonly file: CompareFileData, sha: string) {
     super(name, vscode.TreeItemCollapsibleState.None);
     const letter = STATUS_LETTERS[file.status];
-    // resourceUri with the real path so the active file icon theme picks the right language icon.
     this.resourceUri = vscode.Uri.from({
       scheme: SCHEME,
       path: '/' + file.path,
@@ -52,12 +60,28 @@ class FileItem extends vscode.TreeItem {
       `**${file.path}**\n\nStatus: ${file.status}  \n+${file.insertions} / -${file.deletions}`
     );
     this.contextValue = 'compareFile';
+
+    const rootUri = vscode.workspace.workspaceFolders?.[0]?.uri;
+    const leftUri = blobUri(file.path, file.status === 'added' ? null : sha);
+    const rightUri = (file.status === 'deleted' || !rootUri)
+      ? blobUri(file.path, null)
+      : vscode.Uri.joinPath(rootUri, file.path);
+
+    const diffTitle = file.status === 'renamed'
+      ? `${file.oldPath} → ${file.path} (local)`
+      : `${file.path} (local)`;
+
+    this.command = {
+      command: 'vscode.diff',
+      title: 'Open Changes vs Local',
+      arguments: [leftUri, rightUri, diffTitle, { preview: true }],
+    };
   }
 }
 
 class PlaceholderItem extends vscode.TreeItem {
   constructor() {
-    super('Right-click a commit → Compare with previous', vscode.TreeItemCollapsibleState.None);
+    super('Right-click a commit → Compare with local', vscode.TreeItemCollapsibleState.None);
     this.iconPath = new vscode.ThemeIcon('info');
     this.contextValue = 'comparePlaceholder';
   }
@@ -76,7 +100,7 @@ function dominantStatusColor(items: CompareItem[]): string | null {
 
   function scan(nodes: CompareItem[]) {
     for (const node of nodes) {
-      if (node instanceof FileItem) {
+      if (node instanceof LocalFileItem) {
         const letter = STATUS_LETTERS[node.file.status];
         const p = STATUS_PRIORITY[letter] ?? 0;
         if (p > bestPriority) { bestPriority = p; bestLetter = letter; }
@@ -90,7 +114,7 @@ function dominantStatusColor(items: CompareItem[]): string | null {
   return bestLetter ? (STATUS_COLORS[bestLetter] ?? null) : null;
 }
 
-function buildTreeItems(files: CompareFileData[]): CompareItem[] {
+function buildTreeItems(files: CompareFileData[], sha: string): CompareItem[] {
   const root: DirTree = { files: [], dirs: new Map() };
 
   for (const file of files) {
@@ -115,7 +139,7 @@ function buildTreeItems(files: CompareFileData[]): CompareItem[] {
     }
 
     for (const file of [...tree.files].sort((a, b) => a.path.localeCompare(b.path))) {
-      items.push(new FileItem(file.path.split('/').pop()!, file));
+      items.push(new LocalFileItem(file.path.split('/').pop()!, file, sha));
     }
 
     return items;
@@ -138,8 +162,8 @@ export class CompareProvider
 
   private _rootItems: CompareItem[] = [];
 
-  showDiff(_sha: string, _parentSha: string | null, _message: string, files: CompareFileData[]) {
-    this._rootItems = buildTreeItems(files);
+  showLocalDiff(sha: string, _message: string, files: CompareFileData[]) {
+    this._rootItems = buildTreeItems(files, sha);
     this._onDidChangeTreeData.fire();
   }
 

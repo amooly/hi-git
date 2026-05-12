@@ -169,6 +169,9 @@ export function CommitTable({
                 setSelectedSha(c.sha);
                 window.vscodeAPI?.postEvent('commitSelected', { commit: c, branch: data.BRANCHES[c.branch] });
               }}
+              onDoubleClick={() => {
+                window.vscodeAPI?.postEvent('commitReveal', { commit: c, branch: data.BRANCHES[c.branch] });
+              }}
               onContextMenu={(e) => onRowContext(e, c.sha)}
             >
               {/* Graph cell */}

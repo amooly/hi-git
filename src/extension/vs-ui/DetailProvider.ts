@@ -24,9 +24,11 @@ export class DetailProvider implements vscode.WebviewViewProvider {
         webviewView.webview.html = this._getHtml(webviewView.webview);
     }
 
-    public showCommit(commit: CommitData, branch: BranchData) {
+    public showCommit(commit: CommitData, branch: BranchData, reveal = false) {
         if (this._view) {
-            this._view.show(true); // reveal without stealing focus
+            if (reveal) {
+                this._view.show(false); // unfold and focus
+            }
             this._view.webview.postMessage({ type: 'showCommit', commit, branch });
         }
     }

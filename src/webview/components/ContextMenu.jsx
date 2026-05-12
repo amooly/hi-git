@@ -2,15 +2,16 @@
 
 import { CONTEXT_MENU_ITEMS } from '../constants/contextMenuItems.js';
 
-export function ContextMenu({ menu, onCopySha, onCompareWithPrev }) {
-  // Clamp to viewport so the menu never overflows the window edge.
+export function ContextMenu({ menu, onCopySha, onCopyInfo, onCompareWithLocal }) {
   const W = 240, H = CONTEXT_MENU_ITEMS.length * 30;
   const x = Math.min(menu.x, window.innerWidth - W - 8);
   const y = Math.min(menu.y, window.innerHeight - H - 8);
 
   function getClickHandler(it) {
-    if (it.copySha)          return () => onCopySha(menu.sha);
-    if (it.compareWithPrev)  return () => onCompareWithPrev(menu.sha);
+    if (it.disabled)          return undefined;
+    if (it.copySha)           return () => onCopySha(menu.sha);
+    if (it.copyInfo)          return () => onCopyInfo(menu.sha);
+    if (it.compareWithLocal)  return () => onCompareWithLocal(menu.sha);
     return undefined;
   }
 
@@ -19,7 +20,11 @@ export function ContextMenu({ menu, onCopySha, onCompareWithPrev }) {
       {CONTEXT_MENU_ITEMS.map((it, i) => it.divider
         ? <div key={i} className="gx-context-divider" />
         : (
-          <div key={i} className="gx-context-item" onClick={getClickHandler(it)}>
+          <div
+            key={i}
+            className={`gx-context-item${it.disabled ? ' gx-context-item--disabled' : ''}`}
+            onClick={getClickHandler(it)}
+          >
             <span className="codicon">{it.icon}</span>
             <span>{it.label}</span>
             {it.shortcut && <span className="ctx-shortcut">{it.shortcut}</span>}

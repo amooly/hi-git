@@ -310,16 +310,7 @@ class GitDataService {
     return out.split('\n').filter(Boolean).map(name => ({ name: name.trim() }));
   }
 
-  getCommitDiff(sha: string): CommitCompareData {
-    const cwd = getWorkspaceRoot();
-    const message  = exec(`git log -1 --format=%s ${sha}`, cwd);
-    const parentLine = exec(`git log -1 --format=%P ${sha}`, cwd);
-    const parentSha  = parentLine.split(' ')[0]?.slice(0, 7) || null;
-
-    // name-status gives us A/M/D/R codes; numstat gives insertion/deletion counts
-    const statusLines  = exec(`git diff-tree --no-commit-id -r --name-status -M50% ${sha}`, cwd).split('\n').filter(Boolean);
-    const numstatLines = exec(`git diff-tree --no-commit-id -r --numstat -M50% ${sha}`, cwd).split('\n').filter(Boolean);
-
+  private _parseFileDiffs(statusLines: string[], numstatLines: string[]): CompareFileData[] {
     const statusMap = new Map<string, { status: CompareFileData['status']; oldPath?: string }>();
     for (const line of statusLines) {
       const parts = line.split('\t');
@@ -332,7 +323,7 @@ class GitDataService {
       }
     }
 
-    const files: CompareFileData[] = numstatLines.flatMap(line => {
+    return numstatLines.flatMap(line => {
       const [ins, del, rawPath] = line.split('\t');
       if (!rawPath) return [];
 
@@ -360,8 +351,23 @@ class GitDataService {
       if (oldPath) entry.oldPath = oldPath;
       return [entry];
     });
+  }
 
-    return { sha: sha.slice(0, 7), parentSha, message, files };
+  getCommitDiffWithLocal(sha: string): CommitCompareData {
+    const cwd = getWorkspaceRoot();
+    const message = exec(`git log -1 --format=%s ${sha}`, cwd);
+
+    // Compare commit against current working tree
+    const statusLines  = exec(`git diff --name-status -M50% ${sha}`, cwd).split('\n').filter(Boolean);
+    const numstatLines = exec(`git diff --numstat -M50% ${sha}`, cwd).split('\n').filter(Boolean);
+    const files = this._parseFileDiffs(statusLines, numstatLines);
+
+    return { sha: sha.slice(0, 7), parentSha: null, message, files };
+  }
+
+  getFileAtRevision(sha: string, filePath: string): string {
+    const cwd = getWorkspaceRoot();
+    return exec(`git show ${sha}:${filePath}`, cwd);
   }
 }
 

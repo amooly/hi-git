@@ -1331,6 +1331,12 @@ input {
   color: rgba(255, 255, 255, 0.8);
 }
 
+.gx-context-item--disabled {
+  opacity: 0.38;
+  cursor: default;
+  pointer-events: none;
+}
+
 .gx-context-divider {
   height: 1px;
   background: var(--vsc-divider-strong);

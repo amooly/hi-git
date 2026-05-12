@@ -106,8 +106,25 @@ export function GraphPanel({
     setContextMenu(null);
   };
 
-  const onCompareWithPrev = (sha) => {
-    window.vscodeAPI.postEvent('compareWithPrev', { sha });
+  const onCopyInfo = (sha) => {
+    const commit = data.COMMITS.find(c => c.sha === sha);
+    if (!commit) return;
+    const lines = [
+      `commit ${commit.sha}`,
+      `Author: ${commit.author} <${commit.email}>`,
+      `Date:   ${commit.dateAbs}`,
+      `Branch: ${commit.branch}`,
+    ];
+    if (commit.refs.length > 0) {
+      lines.push(`Refs:   ${commit.refs.map(r => r.name).join(', ')}`);
+    }
+    lines.push('', `    ${commit.msg}`);
+    navigator.clipboard?.writeText(lines.join('\n'));
+    setContextMenu(null);
+  };
+
+  const onCompareWithLocal = (sha) => {
+    window.vscodeAPI.postEvent('compareWithLocal', { sha });
     setContextMenu(null);
   };
 
@@ -135,7 +152,7 @@ export function GraphPanel({
         rowH={rowH}
       />
 
-      {contextMenu && <ContextMenu menu={contextMenu} onCopySha={onCopySha} onCompareWithPrev={onCompareWithPrev} />}
+      {contextMenu && <ContextMenu menu={contextMenu} onCopySha={onCopySha} onCopyInfo={onCopyInfo} onCompareWithLocal={onCompareWithLocal} />}
     </div>
   );
 }
