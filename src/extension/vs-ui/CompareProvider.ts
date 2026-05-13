@@ -24,9 +24,14 @@ class FolderItem extends vscode.TreeItem {
     name: string,
     path: string,
     readonly children: CompareItem[],
-    folderColor: string | null
+    folderColor: string | null,
+    collapsed: boolean,
+    generation: number
   ) {
-    super(name, vscode.TreeItemCollapsibleState.Expanded);
+    super(name, collapsed ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.Expanded);
+    // Include generation in the id so VS Code treats each rebuild as entirely new
+    // items with no remembered expansion state from the previous render.
+    this.id = `${generation}:${path}`;
     this.iconPath = vscode.ThemeIcon.Folder;
     this.contextValue = 'compareFolder';
     if (folderColor) {
@@ -114,7 +119,7 @@ function dominantStatusColor(items: CompareItem[]): string | null {
   return bestLetter ? (STATUS_COLORS[bestLetter] ?? null) : null;
 }
 
-function buildTreeItems(files: CompareFileData[], sha: string): CompareItem[] {
+function buildTreeItems(files: CompareFileData[], sha: string, collapsed: boolean, generation: number): CompareItem[] {
   const root: DirTree = { files: [], dirs: new Map() };
 
   for (const file of files) {
@@ -135,7 +140,7 @@ function buildTreeItems(files: CompareFileData[], sha: string): CompareItem[] {
     for (const [name, subtree] of [...tree.dirs.entries()].sort()) {
       const fullPath = [...pathParts, name].join('/');
       const children = toItems(subtree, [...pathParts, name]);
-      items.push(new FolderItem(name, fullPath, children, dominantStatusColor(children)));
+      items.push(new FolderItem(name, fullPath, children, dominantStatusColor(children), collapsed, generation));
     }
 
     for (const file of [...tree.files].sort((a, b) => a.path.localeCompare(b.path))) {
@@ -161,10 +166,38 @@ export class CompareProvider
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private _rootItems: CompareItem[] = [];
+  private _treeView?: vscode.TreeView<CompareItem>;
+  private _currentSha = '';
+  private _currentFiles: CompareFileData[] = [];
+  private _generation = 0;
+
+  setTreeView(treeView: vscode.TreeView<CompareItem>): void {
+    this._treeView = treeView;
+  }
 
   showLocalDiff(sha: string, _message: string, files: CompareFileData[]) {
-    this._rootItems = buildTreeItems(files, sha);
+    this._currentSha = sha;
+    this._currentFiles = files;
+    this._rebuild(false);
+  }
+
+  collapseAll(): void {
+    this._rebuild(true);
+  }
+
+  expandAll(): void {
+    this._rebuild(false);
+  }
+
+  private _rebuild(collapsed: boolean): void {
+    this._rootItems = buildTreeItems(this._currentFiles, this._currentSha, collapsed, ++this._generation);
+    if (this._treeView) {
+      this._treeView.badge = this._currentFiles.length > 0
+        ? { value: this._currentFiles.length, tooltip: `${this._currentFiles.length} changed file${this._currentFiles.length !== 1 ? 's' : ''}` }
+        : undefined;
+    }
     this._onDidChangeTreeData.fire();
+    vscode.commands.executeCommand('setContext', 'hi-git.compareCollapsed', collapsed);
   }
 
   // TreeDataProvider

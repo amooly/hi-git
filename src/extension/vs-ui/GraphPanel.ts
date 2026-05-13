@@ -101,6 +101,10 @@ export class GraphPanel {
     );
   }
 
+  public revealCommit(sha: string): void {
+    this._panel.webview.postMessage({ type: 'revealCommit', sha });
+  }
+
   public dispose() {
     GraphPanel.currentPanel = undefined;
     this._panel.dispose();

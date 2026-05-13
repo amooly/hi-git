@@ -1,7 +1,9 @@
+import { execSync, exec } from 'child_process';
 import * as vscode from 'vscode';
 import { getNonce } from '../utilities/getNonce.js';
 import { SidebarRenderer } from '../utilities/SidebarRenderer.js';
 import { gitDataService } from '../services/GitDataService.js';
+import { GraphPanel } from './GraphPanel.js';
 
 /**
  * Sidebar webview provider for the Hi Git activity bar panel.
@@ -34,6 +36,15 @@ export class BranchProvider implements vscode.WebviewViewProvider {
             switch (message.command) {
                 case 'showGraph':
                     vscode.commands.executeCommand('hi-git.showGraph');
+                    break;
+                case 'refresh':
+                    this.refresh();
+                    break;
+                case 'pullBranch':
+                    this._pullBranch(message.branch, message.isCurrent);
+                    break;
+                case 'checkoutBranch':
+                    this._checkoutBranch(message.branch);
                     break;
             }
         });
@@ -74,6 +85,51 @@ export class BranchProvider implements vscode.WebviewViewProvider {
     public refresh(): void {
         if (this._view) {
             this._view.webview.html = this._getHtmlForWebview(this._view.webview);
+        }
+    }
+
+    private _cwd(): string {
+        return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd();
+    }
+
+    public pinpointCurrentCommit(): void {
+        const sha = gitDataService.getHeadShortSha();
+        if (!sha) return;
+
+        const graphAlreadyOpen = !!GraphPanel.currentPanel;
+        vscode.commands.executeCommand('hi-git.showGraph');
+        // If the panel was just created it needs time to render before it can receive messages.
+        setTimeout(() => GraphPanel.currentPanel?.revealCommit(sha), graphAlreadyOpen ? 0 : 600);
+    }
+
+    private _pullBranch(branch: string, isCurrent: boolean): void {
+        const cwd = this._cwd();
+        const cmd = isCurrent ? 'git pull' : `git fetch origin ${branch}:${branch}`;
+        vscode.window.withProgress(
+            { location: vscode.ProgressLocation.Notification, title: `Pulling ${branch}…`, cancellable: false },
+            () => new Promise<void>(resolve => {
+                exec(cmd, { cwd, timeout: 60_000 }, (err, _stdout, stderr) => {
+                    if (err) {
+                        vscode.window.showErrorMessage(`Pull failed: ${stderr.trim() || err.message}`);
+                    } else {
+                        vscode.window.showInformationMessage(`Pulled ${branch} successfully.`);
+                        this.refresh();
+                    }
+                    resolve();
+                });
+            })
+        );
+    }
+
+    private _checkoutBranch(branch: string): void {
+        const cwd = this._cwd();
+        try {
+            execSync(`git checkout ${branch}`, { cwd, encoding: 'utf8', timeout: 15_000 });
+            vscode.window.showInformationMessage(`Switched to branch '${branch}'.`);
+            this.refresh();
+        } catch (e: any) {
+            const msg = e.stderr?.toString().trim() || e.message || 'unknown error';
+            vscode.window.showErrorMessage(`Checkout failed: ${msg}`);
         }
     }
 
@@ -154,6 +210,7 @@ export class BranchProvider implements vscode.WebviewViewProvider {
             font-size: 12px;
             font-family: var(--vscode-editor-font-family, monospace);
             cursor: default;
+            user-select: none;
         }
         .branch-item:hover {
             background: var(--vscode-list-hoverBackground);
@@ -211,6 +268,33 @@ export class BranchProvider implements vscode.WebviewViewProvider {
             font-size: 12px;
             line-height: 1.5;
         }
+
+        /* Context menu */
+        .ctx-menu {
+            position: fixed;
+            z-index: 1000;
+            min-width: 140px;
+            padding: 4px 0;
+            background: var(--vscode-menu-background);
+            border: 1px solid var(--vscode-menu-border, var(--vscode-widget-border));
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none;
+        }
+        .ctx-menu.visible {
+            display: block;
+        }
+        .ctx-item {
+            padding: 6px 16px;
+            font-size: 12px;
+            color: var(--vscode-menu-foreground);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .ctx-item:hover {
+            background: var(--vscode-menu-selectionBackground);
+            color: var(--vscode-menu-selectionForeground);
+        }
     </style>
 </head>
 <body>
@@ -234,12 +318,57 @@ export class BranchProvider implements vscode.WebviewViewProvider {
         </div>
     </div>
 
+    <!-- Branch context menu -->
+    <div class="ctx-menu" id="ctxMenu">
+        <div class="ctx-item" id="ctxPull">Pull</div>
+        <div class="ctx-item" id="ctxCheckout">Checkout</div>
+    </div>
+
     <script nonce="${nonce}">
         const vscode = acquireVsCodeApi();
 
+        // Header action
         document.getElementById('openGraph').addEventListener('click', () => {
             vscode.postMessage({ command: 'showGraph' });
         });
+
+        // Branch context menu
+        const ctxMenu = document.getElementById('ctxMenu');
+        let ctxBranch = null;
+        let ctxIsCurrent = false;
+
+        document.querySelectorAll('.branch-item').forEach(item => {
+            item.addEventListener('contextmenu', e => {
+                e.preventDefault();
+                ctxBranch = item.dataset.branch;
+                ctxIsCurrent = item.dataset.current === 'true';
+
+                document.getElementById('ctxCheckout').style.display = ctxIsCurrent ? 'none' : '';
+
+                // Position, keeping menu on screen
+                const menuW = 160, menuH = ctxIsCurrent ? 36 : 68;
+                const x = Math.min(e.clientX, window.innerWidth - menuW - 4);
+                const y = Math.min(e.clientY, window.innerHeight - menuH - 4);
+                ctxMenu.style.left = x + 'px';
+                ctxMenu.style.top  = y + 'px';
+                ctxMenu.classList.add('visible');
+            });
+        });
+
+        document.getElementById('ctxPull').addEventListener('click', () => {
+            if (ctxBranch) vscode.postMessage({ command: 'pullBranch', branch: ctxBranch, isCurrent: ctxIsCurrent });
+            ctxMenu.classList.remove('visible');
+        });
+
+        document.getElementById('ctxCheckout').addEventListener('click', () => {
+            if (ctxBranch) vscode.postMessage({ command: 'checkoutBranch', branch: ctxBranch });
+            ctxMenu.classList.remove('visible');
+        });
+
+        const closeMenu = () => ctxMenu.classList.remove('visible');
+        document.addEventListener('click', closeMenu);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+        document.addEventListener('scroll', closeMenu, true);
     </script>
 </body>
 </html>`;

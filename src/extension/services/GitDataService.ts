@@ -369,6 +369,10 @@ class GitDataService {
     const cwd = getWorkspaceRoot();
     return exec(`git show ${sha}:${filePath}`, cwd);
   }
+
+  getHeadShortSha(): string {
+    return exec('git rev-parse --short HEAD', getWorkspaceRoot());
+  }
 }
 
 export const gitDataService = new GitDataService();

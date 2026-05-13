@@ -35,6 +35,7 @@ export function GraphPanel({
 }) {
   const [colFilters, setColFilters]   = React.useState(() => buildColFilters(data.COMMITS));
   const [selectedSha, setSelectedSha] = React.useState(data.COMMITS[0].sha);
+  const [revealSha, setRevealSha]     = React.useState(null);
   const [contextMenu, setContextMenu] = React.useState(null); // {x, y, sha}
   const [refreshing, setRefreshing]   = React.useState(false);
 
@@ -74,6 +75,30 @@ export function GraphPanel({
     () => buildEdges(data.COMMITS, rowH, data.BRANCHES, filteredOut),
     [data.COMMITS, rowH, data.BRANCHES, filteredOut]
   );
+
+  // Handle revealCommit messages from the extension host (sidebar pinpoint button).
+  React.useEffect(() => {
+    const onMsg = (event) => {
+      if (event.data?.type === 'revealCommit') {
+        const sha = String(event.data.sha ?? '').slice(0, 7);
+        if (sha) {
+          setSelectedSha(sha);
+          setRevealSha(sha);
+        }
+      }
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  // Scroll revealed row into view after React renders the selection.
+  React.useEffect(() => {
+    if (!revealSha) return;
+    requestAnimationFrame(() => {
+      document.querySelector(`[data-sha="${revealSha}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      setRevealSha(null);
+    });
+  }, [revealSha]);
 
   // Close context menu on outside click, scroll, or Escape.
   React.useEffect(() => {

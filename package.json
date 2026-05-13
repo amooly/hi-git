@@ -19,8 +19,52 @@
         "command": "hi-git.showGraph",
         "title": "Hi Git: Show Graph",
         "icon": "$(git-branch)"
+      },
+      {
+        "command": "hi-git.refreshSidebar",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "hi-git.pinpointCommit",
+        "title": "Reveal Current Commit in Graph",
+        "icon": "$(target)"
+      },
+      {
+        "command": "hi-git.collapseCompareView",
+        "title": "Collapse All",
+        "icon": "$(collapse-all)"
+      },
+      {
+        "command": "hi-git.expandCompareView",
+        "title": "Expand All",
+        "icon": "$(expand-all)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "hi-git.pinpointCommit",
+          "when": "view == hi-git.sidebarView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "hi-git.refreshSidebar",
+          "when": "view == hi-git.sidebarView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "hi-git.collapseCompareView",
+          "when": "view == hi-git.compareView && !hi-git.compareCollapsed",
+          "group": "navigation@1"
+        },
+        {
+          "command": "hi-git.expandCompareView",
+          "when": "view == hi-git.compareView && hi-git.compareCollapsed",
+          "group": "navigation@1"
+        }
+      ]
+    },
     "viewsContainers": {
       "activitybar": [
         {

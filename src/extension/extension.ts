@@ -24,12 +24,11 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   const compareProvider = new CompareProvider();
-  context.subscriptions.push(
-    vscode.window.registerTreeDataProvider(
-      CompareProvider.viewType,
-      compareProvider
-    )
-  );
+  const compareTreeView = vscode.window.createTreeView(CompareProvider.viewType, {
+    treeDataProvider: compareProvider,
+  });
+  compareProvider.setTreeView(compareTreeView);
+  context.subscriptions.push(compareTreeView);
   context.subscriptions.push(
     vscode.window.registerFileDecorationProvider(compareProvider)
   );
@@ -46,6 +45,31 @@ export function activate(context: vscode.ExtensionContext) {
       GraphPanel.createOrShow(context.extensionUri, detailsProvider, compareProvider);
     })
   );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('hi-git.refreshSidebar', () => {
+      sidebarProvider.refresh();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('hi-git.pinpointCommit', () => {
+      sidebarProvider.pinpointCurrentCommit();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('hi-git.collapseCompareView', () => {
+      compareProvider.collapseAll();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('hi-git.expandCompareView', () => {
+      compareProvider.expandAll();
+    })
+  );
+
 }
 
 export function deactivate() {}

@@ -163,6 +163,7 @@ export function CommitTable({
           return (
             <div
               key={c.sha}
+              data-sha={c.sha}
               className={`gx-row ${selectedSha === c.sha ? 'selected' : ''} ${out ? 'filtered-out' : ''}`}
               style={{ height: yPos.height, maxHeight: yPos.height }}
               onClick={() => {
