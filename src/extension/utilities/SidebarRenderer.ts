@@ -1,4 +1,5 @@
 import type { BranchSummaryEntry, TagSummaryEntry } from '@shared/types/index.js';
+import { PIN_SVG } from '../constants/icons.js';
 
 export class SidebarRenderer {
   static branchItems(branches: BranchSummaryEntry[]): string {
@@ -14,9 +15,10 @@ export class SidebarRenderer {
 
   static tagItems(tags: TagSummaryEntry[]): string {
     return tags.map(t => `
-                <li class="tag-item">
+                <li class="tag-item" data-tag="${t.name}">
                     <span class="tag-icon">🏷</span>
-                    ${t.name}
+                    <span class="tag-name">${t.name}</span>
+                    <button class="pin-btn" title="Reveal in graph" data-tag="${t.name}">${PIN_SVG}</button>
                 </li>`).join('');
   }
 }

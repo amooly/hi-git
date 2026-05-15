@@ -373,6 +373,13 @@ class GitDataService {
   getHeadShortSha(): string {
     return exec('git rev-parse --short HEAD', getWorkspaceRoot());
   }
+
+  getTagShortSha(tag: string): string {
+    const cwd = getWorkspaceRoot();
+    // Try dereferencing annotated tag first (^{}), fall back to lightweight
+    return exec(`git rev-parse --short "${tag}^{}"`, cwd)
+        || exec(`git rev-parse --short "${tag}"`, cwd);
+  }
 }
 
 export const gitDataService = new GitDataService();

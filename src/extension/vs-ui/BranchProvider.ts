@@ -4,6 +4,7 @@ import { getNonce } from '../utilities/getNonce.js';
 import { SidebarRenderer } from '../utilities/SidebarRenderer.js';
 import { gitDataService } from '../services/GitDataService.js';
 import { GraphPanel } from './GraphPanel.js';
+import { PIN_SVG } from '../constants/icons.js';
 
 /**
  * Sidebar webview provider for the Hi Git activity bar panel.
@@ -45,6 +46,9 @@ export class BranchProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'checkoutBranch':
                     this._checkoutBranch(message.branch);
+                    break;
+                case 'pinpointTag':
+                    this._pinpointTag(message.tag);
                     break;
             }
         });
@@ -99,6 +103,17 @@ export class BranchProvider implements vscode.WebviewViewProvider {
         const graphAlreadyOpen = !!GraphPanel.currentPanel;
         vscode.commands.executeCommand('hi-git.showGraph');
         // If the panel was just created it needs time to render before it can receive messages.
+        setTimeout(() => GraphPanel.currentPanel?.revealCommit(sha), graphAlreadyOpen ? 0 : 600);
+    }
+
+    private _pinpointTag(tag: string): void {
+        const sha = gitDataService.getTagShortSha(tag);
+        if (!sha) {
+            vscode.window.showWarningMessage(`Could not resolve tag '${tag}' to a commit.`);
+            return;
+        }
+        const graphAlreadyOpen = !!GraphPanel.currentPanel;
+        vscode.commands.executeCommand('hi-git.showGraph');
         setTimeout(() => GraphPanel.currentPanel?.revealCommit(sha), graphAlreadyOpen ? 0 : 600);
     }
 
@@ -251,6 +266,7 @@ export class BranchProvider implements vscode.WebviewViewProvider {
             font-size: 12px;
             font-family: var(--vscode-editor-font-family, monospace);
             cursor: default;
+            position: relative;
         }
         .tag-item:hover {
             background: var(--vscode-list-hoverBackground);
@@ -259,6 +275,69 @@ export class BranchProvider implements vscode.WebviewViewProvider {
         .tag-icon {
             font-size: 12px;
             opacity: 0.7;
+        }
+
+        .tag-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .pin-btn {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+            flex-shrink: 0;
+            padding: 2px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            line-height: 1;
+            border-radius: 3px;
+            color: var(--vscode-foreground);
+            opacity: 0.75;
+            transition: opacity 80ms ease, background 80ms ease;
+        }
+        .tag-item:hover .pin-btn {
+            display: flex;
+        }
+        .pin-btn:hover {
+            opacity: 1;
+            background: var(--vscode-toolbar-hoverBackground, rgba(255,255,255,0.1));
+        }
+
+        /* Tags fold toggle */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 8px;
+        }
+        .section-header:hover .section-title {
+            color: var(--vscode-foreground);
+        }
+        /* Suppress the standalone margin-bottom when title sits in a flex header row */
+        .section-header .section-title {
+            margin-bottom: 0;
+        }
+        .fold-arrow {
+            font-size: 10px;
+            color: var(--vscode-descriptionForeground);
+            transition: transform 150ms ease;
+            display: inline-block;
+        }
+        .fold-arrow.open {
+            transform: rotate(90deg);
+        }
+        .collapsible-body {
+            overflow: hidden;
+        }
+        .collapsible-body.collapsed {
+            display: none;
         }
 
         .empty-state {
@@ -300,7 +379,7 @@ export class BranchProvider implements vscode.WebviewViewProvider {
 <body>
     <div class="sidebar-container">
         <button class="open-graph-btn" id="openGraph">
-            ◇ Show Full Graph
+            ${PIN_SVG} Show Full Graph
         </button>
 
         <div>
@@ -311,10 +390,15 @@ export class BranchProvider implements vscode.WebviewViewProvider {
         </div>
 
         <div>
-            <div class="section-title">Tags</div>
-            <ul class="tag-list">
-                ${SidebarRenderer.tagItems(gitDataService.getTagSummary())}
-            </ul>
+            <div class="section-header" id="tagsHeader" aria-expanded="false">
+                <span class="fold-arrow" id="tagsArrow">&#9654;</span>
+                <span class="section-title">Tags</span>
+            </div>
+            <div class="collapsible-body collapsed" id="tagsBody">
+                <ul class="tag-list">
+                    ${SidebarRenderer.tagItems(gitDataService.getTagSummary())}
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -330,6 +414,26 @@ export class BranchProvider implements vscode.WebviewViewProvider {
         // Header action
         document.getElementById('openGraph').addEventListener('click', () => {
             vscode.postMessage({ command: 'showGraph' });
+        });
+
+        // Tags fold toggle
+        const tagsHeader = document.getElementById('tagsHeader');
+        const tagsBody   = document.getElementById('tagsBody');
+        const tagsArrow  = document.getElementById('tagsArrow');
+        tagsHeader.addEventListener('click', () => {
+            const isOpen = !tagsBody.classList.contains('collapsed');
+            tagsBody.classList.toggle('collapsed', isOpen);
+            tagsArrow.classList.toggle('open', !isOpen);
+            tagsHeader.setAttribute('aria-expanded', String(!isOpen));
+        });
+
+        // Pin-point buttons on tag items
+        document.querySelectorAll('.pin-btn').forEach(btn => {
+            btn.addEventListener('click', e => {
+                e.stopPropagation();
+                const tag = btn.dataset.tag;
+                if (tag) vscode.postMessage({ command: 'pinpointTag', tag });
+            });
         });
 
         // Branch context menu
