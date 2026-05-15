@@ -289,8 +289,15 @@ class GitDataService {
   getBranchSummary(): BranchSummaryEntry[] {
     const cwd = getWorkspaceRoot();
     const headBranch = exec('git rev-parse --abbrev-ref HEAD', cwd);
-    const out = exec(`git branch --format='%(refname:short)|%(upstream:track)'`, cwd);
-    return out.split('\n')
+
+    // for-each-ref sorts by most-recent tip commit date (best single-command proxy for "last used").
+    // %(upstream:track) appends ↑N/↓N ahead/behind info when a remote tracking branch exists.
+    const out = exec(
+      `git for-each-ref --sort=-committerdate refs/heads/ --format='%(refname:short)|%(upstream:track)'`,
+      cwd,
+    );
+
+    const branches = out.split('\n')
       .filter(Boolean)
       .map(line => {
         const [name, track = ''] = line.split('|');
@@ -302,6 +309,13 @@ class GitDataService {
           meta: formatTrack(track.trim()),
         };
       });
+
+    // Always promote main/master to the very top regardless of activity recency.
+    const TRUNK = new Set(['main', 'master']);
+    return [
+      ...branches.filter(b => TRUNK.has(b.name)),
+      ...branches.filter(b => !TRUNK.has(b.name)),
+    ];
   }
 
   getTagSummary(): TagSummaryEntry[] {

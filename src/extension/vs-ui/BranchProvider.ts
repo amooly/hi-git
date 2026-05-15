@@ -98,7 +98,10 @@ export class BranchProvider implements vscode.WebviewViewProvider {
 
     public pinpointCurrentCommit(): void {
         const sha = gitDataService.getHeadShortSha();
-        if (!sha) return;
+        if (!sha) {
+            vscode.window.showWarningMessage('No commit found at HEAD. Is this a git repository with at least one commit?');
+            return;
+        }
 
         const graphAlreadyOpen = !!GraphPanel.currentPanel;
         vscode.commands.executeCommand('hi-git.showGraph');
